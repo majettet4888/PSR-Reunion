@@ -140,7 +140,8 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--green-2)}
 .payrow .val{font:600 15px var(--f-mono);overflow-wrap:anywhere}
 .memo-callout{border:2px dashed var(--line);border-radius:12px;padding:12px 14px;text-align:center;margin-top:16px;font-size:15px}
 .btn.cashapp{background:#00b84f;border-color:#00b84f;color:#fff;font-size:18px;padding:16px 18px;border-radius:14px;text-decoration:none}
-.btn.cashapp:hover{filter:brightness(1.06)}
+.btn.cashapp:hover,.btn.paypal:hover{filter:brightness(1.06)}
+.btn.paypal{background:#1a5fb4;border-color:#1a5fb4;color:#fff;font-size:18px;padding:16px 18px;border-radius:14px}
 .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
 a.btn{text-decoration:none}
@@ -473,6 +474,12 @@ ul.feed{margin:0;padding:0}
       <div class="stack" style="gap:12px">
         <label class="f">Zelle email or phone<input id="sZelle" data-k="zelle"></label>
         <label class="f">Cash App $Cashtag<input id="sCash" data-k="cashapp"></label>
+        <label class="f">PayPal.me name (for debit and credit cards)<input id="sPaypal" data-k="paypal" placeholder="e.g. PSRReunion"></label>
+        <div class="fields">
+          <label class="f">Card fee (%)<input id="sCardPct" data-k="cardPct" type="number" step="0.01"></label>
+          <label class="f">Card fee per payment ($)<input id="sCardFix" data-k="cardFixed" type="number" step="0.01"></label>
+        </div>
+        <p class="muted small">Card fees are logged as an expense automatically. Check PayPal's current rate when you set up the account.</p>
         <p class="muted small">Both should be linked to the reunion's own Gmail so the system can read the payment emails.</p>
       </div>
     </div>
@@ -510,9 +517,9 @@ ul.feed{margin:0;padding:0}
 
 <script>
 (function(){
-const CATS=['Hotel catering & bar','Venue & deposits','Activities','T-shirts & merchandise','Printing & postage','Food & hospitality','Supplies & decor'];
+const CATS=['Hotel catering & bar','Venue & deposits','Activities','T-shirts & merchandise','Printing & postage','Food & hospitality','Supplies & decor','Card processing fees'];
 const SIZES=['S','M','L','XL','2XL','3XL','4XL'];
-const KEY='psr-hub-demo-v3';
+const KEY='psr-hub-demo-v4';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>(n<0?'−':'')+'$'+Math.abs(+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -539,9 +546,9 @@ function defaults(){return{
     {id:'tshirt',label:'Reunion T-shirt',price:10,on:true,sized:true},
     {id:'lunch',label:'Saturday boxed lunch',price:36,on:true},
     {id:'outing',label:'Family outing pass',price:25,on:true}],
-  zelle:'psr.treasurer@example.com',cashapp:'$PSR-Demo',
+  zelle:'psr.treasurer@example.com',paypal:'PSRDemo',cardPct:3.49,cardFixed:0.49,cashapp:'$PSR-Demo',
   begin:903.48,scholStart:4487.73,
-  budgets:{'Hotel catering & bar':6000,'Venue & deposits':1500,'Activities':800,'T-shirts & merchandise':600,'Printing & postage':350,'Food & hospitality':250,'Supplies & decor':200}
+  budgets:{'Hotel catering & bar':6000,'Venue & deposits':1500,'Activities':800,'T-shirts & merchandise':600,'Printing & postage':350,'Food & hospitality':250,'Supplies & decor':200,'Card processing fees':200}
 }}
 function sh(o){const s={};SIZES.forEach(k=>s[k]=o[k]||0);return s}
 function seedData(){
@@ -630,6 +637,7 @@ function matchPayment(p){
 }
 function nextIncoming(){
   const scripted=[
+    ()=>{const r=findReg('PSR-008');return r&&balOf(r)>0?{from:'Brenda Sanford',via:'PayPal (card)',memo:'PSR-008',amount:balOf(r)}:null},
     ()=>{const r=findReg('PSR-004');return r&&balOf(r)>0?{from:'YVONNE CARTER',via:'Zelle',memo:'PSR-004 reunion',amount:balOf(r)}:null},
     ()=>{const r=findReg('PSR-003');return r&&balOf(r)>0?{from:'Marcus Sanford',via:'Cash App',memo:'family reunion',amount:balOf(r)}:null},
     ()=>{const r=findReg('PSR-006');return r&&balOf(r)>0?{from:'A H',via:'Zelle',memo:'',amount:balOf(r)}:null},
@@ -674,6 +682,8 @@ function renderHero(){
 }
 
 const cashLink=amt=>{const tag=String(D.S.cashapp||'').replace(/^\$/,'').trim();const a=Math.round(amt*100)/100;return`https://cash.app/$${encodeURIComponent(tag)}/${a%1?a.toFixed(2):a}`};
+const paypalLink=amt=>{const a=Math.round(amt*100)/100;return`https://www.paypal.com/paypalme/${encodeURIComponent(String(D.S.paypal||'').trim())}/${a.toFixed(2)}`};
+const cardFee=amt=>Math.round((amt*(+D.S.cardPct||0)/100+(+D.S.cardFixed||0))*100)/100;
 /* ---------- Hotel ---------- */
 function renderHotel(){const S=D.S,c=$('hotelCard');
   if(!S.hotelName){c.hidden=true;return}c.hidden=false;
@@ -733,7 +743,7 @@ function renderSummary(){
     <p class="pill-note" style="margin-bottom:14px">${early?`Early-bird prices through ${nice(D.S.earlyBird)}.`:'Regular prices apply.'} No processing fees.</p>
     <span class="err" id="regErr" hidden></span>
     <button class="btn gold block" type="submit" form="regForm">Register and get my code</button>
-    <p class="muted small" style="margin-top:10px;text-align:center">You'll pay by Zelle or Cash App on the next screen.</p>`;
+    <p class="muted small" style="margin-top:10px;text-align:center">You'll pay by Cash App, Zelle or card on the next screen.</p>`;
 }
 $('regForm').addEventListener('input',e=>{
   const el=e.target;
@@ -784,6 +794,9 @@ function showConfirm(r){
       <p class="muted small" style="text-align:center;margin-top:-2px">Opens Cash App with the amount filled in. Just tap Pay.</p>
       <div class="or"><span>or pay with Zelle</span></div>
       <div class="payrow"><span class="lbl">Zelle</span><span class="val">${esc(D.S.zelle)}</span><button class="btn sm" type="button" data-copy="${esc(D.S.zelle)}">Copy</button></div>
+      ${D.S.paypal?`<div class="or"><span>or pay by debit or credit card</span></div>
+      <a class="btn paypal block" id="cardBtn" href="${paypalLink(t)}" target="_blank" rel="noopener">Pay ${money(t)} by card</a>
+      <p class="muted small" style="text-align:center;margin-top:-2px">Secure checkout through PayPal. No PayPal account needed, and no extra charge to you.</p>`:''}
     </div>
     <div class="memo-callout">If you can, write <span class="mono" style="color:var(--red)">${esc(r.code)}</span> in the note when you pay. Forgot? That's fine, we match payments by your name too.</div>
     <p class="muted small" style="margin-top:14px">Once your payment arrives, you'll get a receipt by email automatically. Forgot the code? That's okay, we can usually match it by your name.</p>
@@ -792,6 +805,7 @@ function showConfirm(r){
       <button class="btn" type="button" id="another">Register another household</button>
     </div></div>`;
   c.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copy(b.dataset.copy,b)));
+  const cb=$('cardBtn');if(cb)cb.addEventListener('click',e=>{if(/demo|example/i.test(D.S.paypal)){e.preventDefault();toast(`Demo only. In the real version this opens a secure card checkout for ${money(t)}.`)}});
   $('cashBtn').addEventListener('click',e=>{if(/demo|example/i.test(D.S.cashapp)){e.preventDefault();toast(`Demo only. In the real version this opens Cash App with ${money(t)} filled in.`)}});
   $('another').addEventListener('click',resetForm);
   $('seePay').addEventListener('click',()=>{resetForm();openTab('payments');window.scrollTo({top:0})});
@@ -855,14 +869,18 @@ $('runPay').addEventListener('click',()=>{
   if(!inc){$('lastEmail').innerHTML='<p class="muted small">No new payment emails. Everyone who registered has paid.</p>';toast('No new payments.');return}
   const res=matchPayment(inc),id=D.pays.reduce((m,p)=>Math.max(m,p.id),0)+1;
   const p={id,date:TODAY,...inc,code:res.code,method:res.method};D.pays.push(p);
+  let feeNote='';if(/paypal/i.test(p.via)){const fee=cardFee(p.amount),eid=D.exps.reduce((m,x)=>Math.max(m,x.id),0)+1;p.fee=fee;
+    D.exps.push({id:eid,date:TODAY,vendor:'PayPal card fee',category:'Card processing fees',amount:fee,source:'Automatic',note:`On ${money(p.amount)} from ${p.from}${p.code?' ('+p.code+')':''}`});
+    feeNote=` · ${money(fee)} card fee logged as an expense`;
+    addFeed('info',`Logged a ${money(fee)} PayPal card fee on ${p.from}'s ${money(p.amount)} payment. The household still shows the full ${money(p.amount)} paid.`)}
   const r=res.code&&findReg(res.code);let chip,txt;
   if(r){const s=statusOf(r);chip=`<span class="chip ok">Matched by ${res.method.toLowerCase()}</span>`;
-    txt=`→ ${esc(regName(r))} (${r.code}) · now <b>${ST[s][1].toLowerCase()}</b>${s==='paid'?' · receipt emailed':''}`;
+    txt=`→ ${esc(regName(r))} (${r.code}) · now <b>${ST[s][1].toLowerCase()}</b>${s==='paid'?' · receipt emailed':''}${feeNote}`;
     addFeed(res.method==='Memo code'?'ok':'warn',`Matched a ${money(p.amount)} ${p.via} payment to ${regName(r)} (${r.code})${res.method==='Memo code'?' by the code in the memo':res.method==='Sender name'?'. No code in the memo, so it matched by the sender\'s name':'. No code or recognizable name, but the amount matched exactly one household'}. ${s==='paid'?'Sent a paid-in-full receipt by email.':'Marked partly paid.'}`);
   }else{chip='<span class="chip warn">Set aside for a look</span>';txt='Couldn\'t tell who this is for, so it\'s waiting below instead of guessing.';
     addFeed('bad',`Couldn't match ${money(p.amount)} from ${p.from}. Set aside for the treasurer.`)}
-  $('lastEmail').innerHTML=`<div class="email"><div class="eh"><span>From: ${p.via==='Zelle'?'Zelle® alerts':'Cash App'}</span><span>Just now</span></div>
-    <div class="eb"><b>${esc(p.from)} sent you ${money(p.amount)}</b><span class="muted small">Memo: ${esc(p.memo)||'(blank)'}</span></div>
+  $('lastEmail').innerHTML=`<div class="email"><div class="eh"><span>From: ${p.via==='Zelle'?'Zelle® alerts':/paypal/i.test(p.via)?'PayPal':'Cash App'}</span><span>Just now</span></div>
+    <div class="eb"><b>${esc(p.from)} sent you ${money(p.amount)}${p.fee?` by card`:''}</b>${p.fee?`<span class="muted small">PayPal fee ${money(p.fee)} · You received ${money(p.amount-p.fee)}</span>`:''}<span class="muted small">Memo: ${esc(p.memo)||'(blank)'}</span></div>
     <div class="res">${chip}<span class="arrow">${txt}</span></div></div>`;
   save();renderAll();toast(r?'Payment matched automatically.':'Payment set aside for a look.');
 });
@@ -876,7 +894,7 @@ function renderExpenses(){
   $('expRows').innerHTML=D.exps.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(e=>`<tr>
     <td>${nice(e.date)}</td><td>${e.img?`<img class="thumb" src="${e.img}" alt="Receipt"> `:''}${esc(e.vendor)}${e.note?`<span class="sub">${esc(e.note)}</span>`:''}</td>
     <td><select data-ecat="${e.id}" aria-label="Category">${catOptions(e.category)}</select></td>
-    <td><span class="chip ${e.source==='Card alert'?'info':'plain'}">${esc(e.source)}</span></td><td class="num out">${money(e.amount)}</td></tr>`).join('');
+    <td><span class="chip ${e.source==='Card alert'||e.source==='Automatic'?'info':'plain'}">${esc(e.source)}</span></td><td class="num out">${money(e.amount)}</td></tr>`).join('');
 }
 $('rcCat').innerHTML=catOptions(CATS[4]);
 $('expRows').addEventListener('change',e=>{const s=e.target.closest('[data-ecat]');if(!s)return;const x=D.exps.find(v=>v.id===+s.dataset.ecat);x.category=s.value;save();renderAll();toast('Category updated.')});
