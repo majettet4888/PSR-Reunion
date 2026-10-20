@@ -138,6 +138,11 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--green-2)}
 .payrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
 .payrow .lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .payrow .val{font:600 15px var(--f-mono);overflow-wrap:anywhere}
+.thanks{padding-block:36px}
+.tverse{margin:18px auto 0;max-width:460px;font-family:var(--f-display);font-size:18px;line-height:1.5}
+.tverse span{display:block;margin-top:6px;font-family:var(--f-body);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green-2)}
+details.demo-only{margin-top:18px;border-top:1px dashed var(--line);padding-top:12px;text-align:left}
+details.demo-only summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted)}
 .memo-callout{border:2px dashed var(--line);border-radius:12px;padding:12px 14px;text-align:center;margin-top:16px;font-size:15px}
 .btn.cashapp{background:#00b84f;border-color:#00b84f;color:#fff;font-size:18px;padding:16px 18px;border-radius:14px;text-decoration:none}
 .btn.cashapp:hover,.btn.paypal:hover{filter:brightness(1.06)}
@@ -312,10 +317,11 @@ ul.feed{margin:0;padding:0}
           <label class="f">First name<input id="rFirst" autocomplete="given-name"></label>
           <label class="f">Last name<input id="rLast" autocomplete="family-name"></label>
           <label class="f">Email<input id="rEmail" type="email" autocomplete="email"></label>
-          <label class="f">Phone<input id="rPhone" type="tel" autocomplete="tel"></label>
+          <label class="f">Phone<input id="rPhone" type="tel" autocomplete="tel" inputmode="numeric" placeholder="(336) 555-1234"></label>
           <label class="f">City<input id="rCity" autocomplete="address-level2"></label>
-          <label class="f">State<input id="rState" autocomplete="address-level1" maxlength="2" placeholder="NC"></label>
+          <label class="f">State<select id="rState" autocomplete="address-level1"><option value="">Choose a state</option><option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="DC">District of Columbia</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option></select></label>
         </div>
+        <label class="f" style="margin-top:12px">Someone else paying for you? Enter their name (optional)<input id="rPayer" autocomplete="off" placeholder="Leave blank if you're paying"></label>
       </div>
       <div class="panel">
         <div class="panel-head"><div><h2>Who's coming</h2><p class="muted small">Everyone in your household, including you. Pick each person's age on reunion weekend.</p></div></div>
@@ -519,7 +525,7 @@ ul.feed{margin:0;padding:0}
 (function(){
 const CATS=['Hotel catering & bar','Venue & deposits','Activities','T-shirts & merchandise','Printing & postage','Food & hospitality','Supplies & decor','Card processing fees'];
 const SIZES=['S','M','L','XL','2XL','3XL','4XL'];
-const KEY='psr-hub-demo-v4';
+const KEY='psr-hub-demo-v5';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>(n<0?'−':'')+'$'+Math.abs(+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -546,7 +552,7 @@ function defaults(){return{
     {id:'tshirt',label:'Reunion T-shirt',price:10,on:true,sized:true},
     {id:'lunch',label:'Saturday boxed lunch',price:36,on:true},
     {id:'outing',label:'Family outing pass',price:25,on:true}],
-  zelle:'psr.treasurer@example.com',paypal:'PSRDemo',cardPct:3.49,cardFixed:0.49,cashapp:'$PSR-Demo',
+  zelle:'psrfamilyreunion@example.com',zelleName:'PSR Family Reunion',paypal:'PSRDemo',cardPct:3.49,cardFixed:0.49,cashapp:'$PSR-Demo',
   begin:903.48,scholStart:4487.73,
   budgets:{'Hotel catering & bar':6000,'Venue & deposits':1500,'Activities':800,'T-shirts & merchandise':600,'Printing & postage':350,'Food & hospitality':250,'Supplies & decor':200,'Card processing fees':200}
 }}
@@ -628,7 +634,7 @@ function matchPayment(p){
   const open=D.regs.filter(r=>balOf(r)>0.005);
   const f=norm(p.from).split(' ').filter(Boolean);
   if(f.length>=2){
-    const hit=open.filter(r=>[regName(r),...r.people.map(x=>x.name)].some(n=>{const t=norm(n).split(' ');return t.length>=2&&t[0]===f[0]&&t[t.length-1]===f[f.length-1]}));
+    const hit=open.filter(r=>[regName(r),...(r.payer?[r.payer]:[]),...r.people.map(x=>x.name)].some(n=>{const t=norm(n).split(' ');return t.length>=2&&t[0]===f[0]&&t[t.length-1]===f[f.length-1]}));
     if(hit.length===1)return{code:hit[0].code,method:'Sender name'};
   }
   const amt=open.filter(r=>Math.abs(balOf(r)-(+p.amount))<0.005);
@@ -742,11 +748,18 @@ function renderSummary(){
     <div class="total"><span>Total</span><b>${money(t)}</b></div>
     <p class="pill-note" style="margin-bottom:14px">${early?`Early-bird prices through ${nice(D.S.earlyBird)}.`:'Regular prices apply.'} No processing fees.</p>
     <span class="err" id="regErr" hidden></span>
-    <button class="btn gold block" type="submit" form="regForm">Register and get my code</button>
-    <p class="muted small" style="margin-top:10px;text-align:center">You'll pay by Cash App, Zelle or card on the next screen.</p>`;
+    <button class="btn gold block" type="submit" form="regForm">Register and pay</button>
+    <p class="muted small" style="margin-top:10px;text-align:center">Next you'll choose Cash App, Zelle or Card.</p>`;
+}
+const titleCase=v=>v.replace(/(^|[\s\-'])([a-z])/g,(m,a,b)=>a+b.toUpperCase());
+const fmtPhone=v=>{let d=v.replace(/\D/g,'');if(d.length>10&&d[0]==='1')d=d.slice(1);d=d.slice(0,10);
+  if(d.length<4)return d.length?'('+d:'';if(d.length<7)return`(${d.slice(0,3)}) ${d.slice(3)}`;return`(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`};
+function liveFormat(el){
+  if(el.id==='rPhone'){const nv=fmtPhone(el.value);if(nv!==el.value){el.value=nv;try{el.setSelectionRange(nv.length,nv.length)}catch(_){}}return}
+  if(['rFirst','rLast','rCity','rPayer'].includes(el.id)||el.dataset.pf==='name'){const pos=el.selectionStart,nv=titleCase(el.value);if(nv!==el.value){el.value=nv;try{el.setSelectionRange(pos,pos)}catch(_){}}}
 }
 $('regForm').addEventListener('input',e=>{
-  const el=e.target;
+  const el=e.target;liveFormat(el);
   if(el.dataset.pi!==undefined){F.people[+el.dataset.pi][el.dataset.pf]=el.value}
   else if(el.dataset.size){F.shirts[el.dataset.size]=Math.max(0,parseInt(el.value)||0)}
   else if(el.dataset.addon){F.addons[el.dataset.addon]=Math.max(0,parseInt(el.value)||0)}
@@ -773,7 +786,7 @@ $('regForm').addEventListener('submit',e=>{
     if(bad){bad.classList.add('bad-field');bad.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>bad.focus({preventScroll:true}),350)}
     return}
   const n=D.regs.reduce((m,r)=>Math.max(m,parseInt(r.code.slice(4))||0),0)+1;
-  const reg={code:'PSR-'+String(n).padStart(3,'0'),date:TODAY,first,last,email,phone:$('rPhone').value.trim(),city:$('rCity').value.trim(),state:$('rState').value.trim().toUpperCase(),
+  const reg={code:'PSR-'+String(n).padStart(3,'0'),date:TODAY,first,last,email,phone:$('rPhone').value.trim(),city:$('rCity').value.trim(),state:$('rState').value,payer:$('rPayer').value.trim(),
     people:people.map(p=>({name:p.name.trim(),group:p.group})),shirts:{...F.shirts},addons:{...F.addons},donation:+$('rDonation').value||0};
   D.regs.push(reg);
   addFeed('ok',`New registration from ${first} ${last} (${reg.code}): ${reg.people.length} ${reg.people.length===1?'person':'people'}, ${money(regTotal(reg))}. Sent payment instructions to ${email}.`);
@@ -783,36 +796,54 @@ function showConfirm(r){
   const L=regLines(r),t=regTotal(r);
   $('regWrap').hidden=true;const c=$('confirm');c.hidden=false;
   c.innerHTML=`<div class="panel confirm">
-    <div class="eyebrow" style="color:var(--green-2)">Registration received</div>
-    <h2 style="margin-top:6px">Thank you, ${esc(r.first)}! Here's your code.</h2>
-    <div class="code">${esc(r.code)}</div>
-    <p class="muted small">Your whole household uses this one code. We also emailed it to ${esc(r.email)}.</p>
+    <div class="eyebrow" style="color:var(--green-2)">You're registered</div>
+    <h2 style="margin-top:6px">Thank you, ${esc(r.first)}!</h2>
     <div class="lines" style="text-align:left">${L.map(l=>`<div class="line"><span>${esc(l.label)} ${l.don?'':`<span class="q">× ${l.q}</span>`}</span><span class="num">${l.a?money(l.a):'Free'}</span></div>`).join('')}</div>
     <div class="total" style="text-align:left"><span>Amount due</span><b>${money(t)}</b></div>
     <div class="paybox">
       <a class="btn cashapp block" id="cashBtn" href="${cashLink(t)}" target="_blank" rel="noopener">Pay ${money(t)} with Cash App</a>
       <p class="muted small" style="text-align:center;margin-top:-2px">Opens Cash App with the amount filled in. Just tap Pay.</p>
       <div class="or"><span>or pay with Zelle</span></div>
-      <div class="payrow"><span class="lbl">Zelle</span><span class="val">${esc(D.S.zelle)}</span><button class="btn sm" type="button" data-copy="${esc(D.S.zelle)}">Copy</button></div>
-      ${D.S.paypal?`<div class="or"><span>or pay by debit or credit card</span></div>
-      <a class="btn paypal block" id="cardBtn" href="${paypalLink(t)}" target="_blank" rel="noopener">Pay ${money(t)} by card</a>
-      <p class="muted small" style="text-align:center;margin-top:-2px">Secure checkout through PayPal. No PayPal account needed, and no extra charge to you.</p>`:''}
+      <div class="payrow"><span class="lbl">Zelle</span><span class="val">${esc(D.S.zelle)}${D.S.zelleName?`<span class="muted small" style="display:block;font-family:var(--f-body);font-weight:500">Shows as ${esc(D.S.zelleName)}</span>`:''}</span><button class="btn sm" type="button" data-copy="${esc(D.S.zelle)}">Copy</button></div>
+      <p class="muted small" style="text-align:center;margin-top:-2px">Send to this email using Zelle.</p>
+      ${D.S.paypal?`<div class="or"><span>or pay by Card</span></div>
+      <a class="btn paypal block" id="cardBtn" href="${paypalLink(t)}" target="_blank" rel="noopener">Pay ${money(t)} by Card</a>
+      <p class="muted small" style="text-align:center;margin-top:-2px">Debit or credit, through secure PayPal checkout. No PayPal account needed and no extra charge.</p>`:''}
     </div>
-    <div class="memo-callout">If you can, write <span class="mono" style="color:var(--red)">${esc(r.code)}</span> in the note when you pay. Forgot? That's fine, we match payments by your name too.</div>
-    <p class="muted small" style="margin-top:14px">Once your payment arrives, you'll get a receipt by email automatically. Forgot the code? That's okay, we can usually match it by your name.</p>
+    <p style="margin-top:18px">We've emailed your confirmation to <b>${esc(r.email)}</b>. You'll get a receipt once your payment arrives.</p>
     <div class="row" style="justify-content:center;margin-top:16px">
-      <button class="btn primary" type="button" id="seePay">See it on the payments page</button>
       <button class="btn" type="button" id="another">Register another household</button>
-    </div></div>`;
+      <button class="btn primary" type="button" id="done">Done</button>
+    </div>
+    <p class="muted small" style="margin-top:16px">Confirmation # <span class="mono">${esc(r.code)}</span></p>
+    <details class="demo-only"><summary>Demo only: preview the emails and the committee view</summary>
+      <div class="email" style="margin-top:10px;text-align:left"><div class="eh"><span>To: ${esc(r.email)}</span><span>Right after registering</span></div>
+        <div class="eb"><b>You're registered for the ${esc(D.S.edition)} PSR Family Reunion</b><span class="small">Hi ${esc(r.first)}, thank you for registering ${r.people.length} ${r.people.length===1?'person':'people'}. Amount due: ${money(t)}. Pay with Cash App, Zelle (${esc(D.S.zelle)}) or Card.</span><span class="muted small">Confirmation # ${esc(r.code)}</span></div></div>
+      <div class="email" style="margin-top:10px;text-align:left"><div class="eh"><span>To: ${esc(r.email)}</span><span>When payment arrives</span></div>
+        <div class="eb"><b>Payment received, thank you!</b><span class="small">We received ${money(t)}. You're paid in full. See you at the reunion!</span><span class="muted small">Confirmation # ${esc(r.code)}</span></div></div>
+      <button class="btn sm" type="button" id="seePay" style="margin-top:12px">See it on the payments page</button>
+    </details></div>`;
   c.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copy(b.dataset.copy,b)));
   const cb=$('cardBtn');if(cb)cb.addEventListener('click',e=>{if(/demo|example/i.test(D.S.paypal)){e.preventDefault();toast(`Demo only. In the real version this opens a secure card checkout for ${money(t)}.`)}});
   $('cashBtn').addEventListener('click',e=>{if(/demo|example/i.test(D.S.cashapp)){e.preventDefault();toast(`Demo only. In the real version this opens Cash App with ${money(t)} filled in.`)}});
   $('another').addEventListener('click',resetForm);
+  $('done').addEventListener('click',()=>showThanks(r));
   $('seePay').addEventListener('click',()=>{resetForm();openTab('payments');window.scrollTo({top:0})});
   window.scrollTo({top:0});
 }
+function showThanks(r){const S=D.S,c=$('confirm');
+  c.innerHTML=`<div class="panel confirm thanks">
+    <div class="eyebrow" style="color:var(--green-2)">${esc(S.theme)}</div>
+    <h2 style="margin-top:8px;font-size:30px">You're all set, ${esc(r.first)}!</h2>
+    <p style="margin-top:10px">We can't wait to see you at the reunion.</p>
+    ${S.verse?`<p class="tverse">“${esc(S.verse)}”<span>${esc(S.verseRef||'')}</span></p>`:''}
+    <p class="muted small" style="margin-top:14px">${esc(S.when)}${S.hotelName?' · '+esc(S.hotelName):''}</p>
+    <p class="muted small" style="margin-top:4px">You can close this page. Confirmation # <span class="mono">${esc(r.code)}</span></p>
+    <button class="btn ghost sm demo-only" type="button" id="restart" style="margin-top:16px">Demo: start over</button></div>`;
+  $('restart').addEventListener('click',resetForm);window.scrollTo({top:0});
+}
 function resetForm(){F={people:[{name:'',group:'adult'}],shirts:sh({}),addons:{},donation:0};
-  ['rFirst','rLast','rEmail','rPhone','rCity','rState'].forEach(i=>$(i).value='');$('rDonation').value=0;
+  ['rFirst','rLast','rEmail','rPhone','rCity','rState','rPayer'].forEach(i=>$(i).value='');$('rDonation').value=0;
   $('confirm').hidden=true;$('regWrap').hidden=false;renderPeople();renderAddonFields();renderSummary();}
 
 /* ---------- Overview ---------- */
