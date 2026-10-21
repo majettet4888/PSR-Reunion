@@ -143,6 +143,7 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--green-2)}
 .tverse span{display:block;margin-top:6px;font-family:var(--f-body);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green-2)}
 details.demo-only{margin-top:18px;border-top:1px dashed var(--line);padding-top:12px;text-align:left}
 details.demo-only summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted)}
+.resend{border:1px solid var(--green-2);background:var(--surface-2);border-radius:14px;padding:16px;display:grid;gap:12px;margin-bottom:14px}
 .memo-callout{border:2px dashed var(--line);border-radius:12px;padding:12px 14px;text-align:center;margin-top:16px;font-size:15px}
 .btn.cashapp{background:#00b84f;border-color:#00b84f;color:#fff;font-size:18px;padding:16px 18px;border-radius:14px;text-decoration:none}
 .btn.cashapp:hover,.btn.paypal:hover{filter:brightness(1.06)}
@@ -384,7 +385,9 @@ ul.feed{margin:0;padding:0}
         <button class="filter" data-f="waiting" aria-pressed="false">Waiting</button>
       </div>
     </div>
-    <div class="tw"><table><thead><tr><th>Code</th><th>Household</th><th class="r">Owes</th><th class="r">Paid</th><th class="r">Balance</th><th>Status</th></tr></thead><tbody id="regRows"></tbody></table></div>
+    <label class="f" style="margin-bottom:12px">Look up a household<input id="regSearch" type="search" placeholder="Name, email or confirmation # (like PSR-009)" autocomplete="off"></label>
+    <div id="resendBox"></div>
+    <div class="tw"><table><thead><tr><th>Conf. #</th><th>Household</th><th class="r">Owes</th><th class="r">Paid</th><th class="r">Balance</th><th>Status</th><th></th></tr></thead><tbody id="regRows"></tbody></table></div>
   </div>
   <div class="panel">
     <div class="panel-head"><div><h2>Every payment received</h2><p class="muted small">Shows how each payment was matched.</p></div></div>
@@ -876,11 +879,12 @@ function renderOverview(){
 /* ---------- Payments ---------- */
 let regFilter='all';
 function renderPayments(){
-  const rows=D.regs.slice().reverse().filter(r=>regFilter==='all'||statusOf(r)===regFilter);
+  const qv=norm($('regSearch').value),qc=$('regSearch').value.trim().toUpperCase().replace(/\s/g,'');
+  const rows=D.regs.slice().reverse().filter(r=>regFilter==='all'||statusOf(r)===regFilter).filter(r=>!qc||r.code.includes(qc)||norm([regName(r),r.email,r.payer||'',...r.people.map(x=>x.name)].join(' ')).includes(qv));
   $('regCountSub').textContent=`${D.regs.length} households registered.`;
   $('regRows').innerHTML=rows.map(r=>{const s=statusOf(r),t=regTotal(r),p=paidFor(r.code);
     return`<tr><td class="mono">${r.code}</td><td>${esc(regName(r))}<span class="sub">${r.people.length} ${r.people.length===1?'person':'people'} · ${esc(r.people.map(x=>x.name.split(' ')[0]).join(', '))}</span></td>
-    <td class="num">${money(t)}</td><td class="num">${money(p)}</td><td class="num">${money(Math.max(0,t-p))}</td><td><span class="chip ${ST[s][0]}">${ST[s][1]}</span></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No households in this group.</td></tr>';
+    <td class="num">${money(t)}</td><td class="num">${money(p)}</td><td class="num">${money(Math.max(0,t-p))}</td><td><span class="chip ${ST[s][0]}">${ST[s][1]}</span></td><td><button class="btn sm" type="button" data-resend="${r.code}">Resend receipt</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">No households match.</td></tr>';
   $('payRows').innerHTML=D.pays.slice().reverse().map(p=>{const r=p.code&&findReg(p.code);
     return`<tr><td>${nice(p.date)}</td><td>${esc(p.from)}<span class="sub">${esc(p.via)}</span></td><td class="mono small">${esc(p.memo)||'<span class="muted">(blank)</span>'}</td>
     <td>${r?`${esc(regName(r))} <span class="sub mono">${r.code}</span>`:'<span class="chip warn">Needs a look</span>'}</td>
@@ -891,6 +895,31 @@ function renderPayments(){
       <select data-assign="${p.id}" aria-label="Choose household"><option value="">Choose household…</option>${D.regs.map(r=>`<option value="${r.code}">${r.code} · ${esc(regName(r))} (owes ${money(balOf(r))})</option>`).join('')}</select>
       <button class="btn sm primary" type="button" data-assign-btn="${p.id}">Match it</button></div>`).join('')}</div>`:'';
 }
+$('regSearch').addEventListener('input',renderPayments);
+let resendCode=null;
+function renderResend(){const box=$('resendBox'),r=resendCode&&findReg(resendCode);
+  if(!r){box.innerHTML='';return}
+  const t=regTotal(r),p=paidFor(r.code),s=statusOf(r),bal=Math.max(0,t-p);
+  const subj=s==='paid'?'Payment received, thank you!':s==='partial'?'Payment received: balance remaining':'Your registration: payment still due';
+  const body=s==='paid'?`We received ${money(p)}. You're paid in full. See you at the reunion!`:s==='partial'?`We've received ${money(p)} of ${money(t)}. Remaining balance: ${money(bal)}.`:`Your total is ${money(t)}. Pay with Cash App, Zelle (${D.S.zelle}) or Card.`;
+  box.innerHTML=`<div class="resend">
+    <div class="spread"><h3>Resend receipt to ${esc(regName(r))}</h3><button class="x" type="button" id="rsClose" aria-label="Close">×</button></div>
+    <label class="f">Send to this email (fix it here if it was mistyped)<input id="rsEmail" type="email" value="${esc(r.email)}"></label>
+    <div class="email"><div class="eh"><span>Subject: ${esc(subj)}</span><span>Confirmation # ${esc(r.code)}</span></div>
+      <div class="eb"><span class="small">Hi ${esc(r.first)},</span><span class="small">${esc(body)}</span><span class="muted small">Registered: ${r.people.length} ${r.people.length===1?'person':'people'} · Confirmation # ${esc(r.code)}</span></div></div>
+    <p class="muted small">Tip: ask them to check their spam or junk folder too.</p>
+    <span class="err" id="rsErr" hidden></span>
+    <div class="row"><button class="btn primary" type="button" id="rsSend">Send receipt</button><button class="btn" type="button" id="rsCancel">Cancel</button></div></div>`;
+  const close=()=>{resendCode=null;renderResend()};
+  $('rsClose').onclick=close;$('rsCancel').onclick=close;
+  $('rsSend').onclick=()=>{const em=$('rsEmail').value.trim();
+    if(!/^\S+@\S+\.\S+$/.test(em)){const e=$('rsErr');e.textContent='Enter a full email address, like name@gmail.com.';e.hidden=false;return}
+    const changed=em!==r.email;if(changed){addFeed('info',`Updated ${regName(r)}'s email from ${r.email} to ${em}.`);r.email=em}
+    addFeed('ok',`Resent the receipt to ${regName(r)} (${r.code}) at ${em}.`);
+    resendCode=null;save();renderAll();toast(`Receipt sent to ${em}${changed?' (email updated)':''}.`)};
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+$('regRows').addEventListener('click',e=>{const b=e.target.closest('[data-resend]');if(!b)return;resendCode=b.dataset.resend;renderResend();setTimeout(()=>{const i=$('rsEmail');if(i)i.focus({preventScroll:true})},200)});
 $('regFilters').addEventListener('click',e=>{const b=e.target.closest('.filter');if(!b)return;regFilter=b.dataset.f;$('regFilters').querySelectorAll('.filter').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderPayments()});
 $('reviewBox').addEventListener('click',e=>{const b=e.target.closest('[data-assign-btn]');if(!b)return;const id=+b.dataset.assignBtn,sel=$('reviewBox').querySelector(`[data-assign="${id}"]`);
   if(!sel.value){toast('Pick a household first.');return}const p=D.pays.find(x=>x.id===id);p.code=sel.value;p.method='Matched by treasurer';
