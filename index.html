@@ -145,6 +145,16 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--green-2)}
 details.demo-only{margin-top:18px;border-top:1px dashed var(--line);padding-top:12px;text-align:left}
 details.demo-only summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted)}
 .resend{border:1px solid var(--green-2);background:var(--surface-2);border-radius:14px;padding:16px;display:grid;gap:12px;margin-bottom:14px}
+.bookbox{margin-top:18px;padding:16px;border-radius:14px;background:var(--gold-soft);text-align:left}
+.draftnote{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--gold-soft);border-radius:14px;padding:14px 16px;font-weight:600}
+.f-lbl{font-size:15px;font-weight:600;color:var(--muted)}
+.btn.don{min-width:76px;font-family:var(--f-mono);font-weight:600}
+.btn.don[aria-pressed="true"]{background:var(--green-2);border-color:var(--green-2);color:#fff}
+.money{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);max-width:280px}
+.money>span{padding-left:14px;font:600 17px var(--f-mono);color:var(--ink)}
+.money input{border:0;padding-left:6px}
+.money:focus-within{outline:2px solid var(--green-2)}
+.money input:focus{outline:0}
 .memo-callout{border:2px dashed var(--line);border-radius:12px;padding:12px 14px;text-align:center;margin-top:16px;font-size:15px}
 .btn.cashapp{background:#00b84f;border-color:#00b84f;color:#fff;font-size:18px;padding:16px 18px;border-radius:14px;text-decoration:none}
 .btn.cashapp:hover,.btn.paypal:hover{filter:brightness(1.06)}
@@ -312,6 +322,7 @@ ul.feed{margin:0;padding:0}
 <section role="tabpanel" id="tab-register">
   <div class="reg-grid" id="regWrap">
     <form id="regForm" class="stack" novalidate>
+      <div class="draftnote" id="draftNote" hidden><span>Welcome back! We saved what you started.</span><button class="btn sm" type="button" id="startOver">Start over</button></div>
       <div class="panel hotel" id="hotelCard"></div>
       <div class="panel">
         <div class="panel-head"><div><h2>Who's registering</h2><p class="muted small">The household contact. Your receipt and updates go to this email. You'll list everyone coming in the next step.</p></div></div>
@@ -336,14 +347,17 @@ ul.feed{margin:0;padding:0}
       </div>
       <div class="panel">
         <div class="panel-head"><div><h2>PSR Scholarship</h2><p class="muted small">Supports the family's high school graduates. Kept in its own fund, separate from reunion money.</p></div></div>
-        <div class="row">
-          <label class="f" style="flex:1;min-width:140px">Donation amount ($)<input id="rDonation" type="number" min="0" step="1" value="0" inputmode="decimal"></label>
-          <div class="quick" style="align-self:end">
-            <button type="button" class="btn sm" data-don="10">$10</button>
-            <button type="button" class="btn sm" data-don="25">$25</button>
-            <button type="button" class="btn sm" data-don="50">$50</button>
-            <button type="button" class="btn sm" data-don="100">$100</button>
+        <div class="stack" style="gap:14px">
+          <div class="stack" style="gap:6px"><span class="f-lbl">Pick an amount</span>
+            <div class="quick">
+              <button type="button" class="btn don" data-don="10" aria-pressed="false">$10</button>
+              <button type="button" class="btn don" data-don="25" aria-pressed="false">$25</button>
+              <button type="button" class="btn don" data-don="50" aria-pressed="false">$50</button>
+              <button type="button" class="btn don" data-don="100" aria-pressed="false">$100</button>
+            </div>
           </div>
+          <label class="f">Or enter your own amount<span class="money"><span aria-hidden="true">$</span><input id="rDonation" type="text" inputmode="decimal" placeholder="Type any amount" autocomplete="off"></span></label>
+          <p class="muted small">Optional. Leave it blank to skip.</p>
         </div>
       </div>
     </form>
@@ -701,8 +715,8 @@ function renderHotel(){const S=D.S,c=$('hotelCard');
   <div class="stack" style="gap:6px"><div class="mini">Where we're staying</div><h2 style="font-size:20px">${esc(S.hotelName)}</h2>
   <div class="addr">${esc(S.hotelStreet)}${S.hotelStreet&&S.hotelCity?'<br>':''}${esc(S.hotelCity)}${S.hotelPhone?`<br><span class="mono">${esc(S.hotelPhone)}</span>`:''}</div>
   ${S.roomRate?`<div class="rate">${esc(S.roomRate)}</div>`:''}${S.hotelNote?`<p class="small">${esc(S.hotelNote)}</p>`:''}
-  <div class="row" style="margin-top:4px">${/^https?:\/\//i.test(S.bookUrl||'')?`<a class="btn gold" href="${esc(S.bookUrl)}" target="_blank" rel="noopener">Book your room</a>`:`<span class="btn gold" aria-disabled="true" style="cursor:default">Book your room · link coming soon</span>`}</div>
-  <p class="muted small">Rooms are booked with the hotel. They are not part of your registration total.</p></div>`;
+  <p style="font-weight:700">Rooms are booked directly with the hotel and are not part of your registration total.</p>
+  <p class="small">Book your room after you register. We'll give you the link on the next screen.</p></div>`;
 }
 function caterSpent(){return D.exps.filter(e=>e.category==='Hotel catering & bar').reduce((s,e)=>s+(+e.amount),0)}
 function renderCommit(){const S=D.S,min=+S.caterMin||0,dep=+S.deposit||0;
@@ -728,6 +742,17 @@ function renderCommit(){const S=D.S,min=+S.caterMin||0,dep=+S.deposit||0;
 
 /* ---------- Register ---------- */
 let F={people:[{name:'',group:'adult'}],shirts:sh({}),addons:{},donation:0};
+const DRAFT='psr-reg-draft',DRAFT_DAYS=7,DF=['rFirst','rLast','rEmail','rPhone','rCity','rState','rPayer','rDonation'];
+let draftT;
+function saveDraft(){clearTimeout(draftT);draftT=setTimeout(()=>{try{
+  const v={};DF.forEach(i=>v[i]=$(i).value);
+  const any=DF.some(i=>i!=='rDonation'&&v[i])||F.people.some(p=>p.name)||+v.rDonation>0;
+  if(!any)return;localStorage.setItem(DRAFT,JSON.stringify({ts:Date.now(),v,F}))}catch(e){}},400)}
+function clearDraft(){clearTimeout(draftT);try{localStorage.removeItem(DRAFT)}catch(e){}$('draftNote').hidden=true}
+function loadDraft(){try{const d=JSON.parse(localStorage.getItem(DRAFT)||'null');if(!d)return;
+  if(Date.now()-d.ts>DRAFT_DAYS*864e5){localStorage.removeItem(DRAFT);return}
+  F=d.F;F.shirts=sh(F.shirts||{});F.addons=F.addons||{};if(!F.people||!F.people.length)F.people=[{name:'',group:'adult'}];
+  DF.forEach(i=>{if(d.v[i]!=null)$(i).value=d.v[i]});markDon();$('draftNote').hidden=false}catch(e){}}
 const groupOptions=sel=>D.S.groups.map(g=>{const p=priceFor(g,TODAY);return`<option value="${g.id}"${g.id===sel?' selected':''}>${esc(g.label)} (${esc(g.ages)}) · ${p?money0(p):'Free'}</option>`}).join('');
 function renderPeople(){
   $('peopleList').innerHTML=F.people.map((p,i)=>`<div class="person">
@@ -759,6 +784,7 @@ const titleCase=v=>v.replace(/(^|[\s\-'])([a-z])/g,(m,a,b)=>a+b.toUpperCase());
 const fmtPhone=v=>{let d=v.replace(/\D/g,'');if(d.length>10&&d[0]==='1')d=d.slice(1);d=d.slice(0,10);
   if(d.length<4)return d.length?'('+d:'';if(d.length<7)return`(${d.slice(0,3)}) ${d.slice(3)}`;return`(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`};
 function liveFormat(el){
+  if(el.id==='rDonation'){let v=el.value.replace(/[^\d.]/g,'');const i=v.indexOf('.');if(i>-1)v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'').slice(0,2);if(v!==el.value)el.value=v;markDon();return}
   if(el.id==='rPhone'){const nv=fmtPhone(el.value);if(nv!==el.value){el.value=nv;try{el.setSelectionRange(nv.length,nv.length)}catch(_){}}return}
   if(['rFirst','rLast','rCity','rPayer'].includes(el.id)||el.dataset.pf==='name'){const pos=el.selectionStart,nv=titleCase(el.value);if(nv!==el.value){el.value=nv;try{el.setSelectionRange(pos,pos)}catch(_){}}}
 }
@@ -769,10 +795,13 @@ $('regForm').addEventListener('input',e=>{
   else if(el.dataset.addon){F.addons[el.dataset.addon]=Math.max(0,parseInt(el.value)||0)}
   renderSummary();
 });
+$('regForm').addEventListener('input',saveDraft);
+$('regForm').addEventListener('change',saveDraft);
 $('regForm').addEventListener('change',e=>{if(e.target.dataset.pf==='group'){F.people[+e.target.dataset.pi].group=e.target.value;renderSummary()}});
 $('peopleList').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b||F.people.length<2)return;F.people.splice(+b.dataset.rm,1);renderPeople();renderSummary()});
 $('addPerson').addEventListener('click',()=>{F.people.push({name:'',group:'adult'});renderPeople();renderSummary();const ins=$('peopleList').querySelectorAll('input');ins[ins.length-1].focus()});
-document.querySelectorAll('[data-don]').forEach(b=>b.addEventListener('click',()=>{$('rDonation').value=b.dataset.don;renderSummary()}));
+function markDon(){const v=String(+$('rDonation').value||'');document.querySelectorAll('[data-don]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.don===v)))}
+document.querySelectorAll('[data-don]').forEach(b=>b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')==='true';$('rDonation').value=on?'':b.dataset.don;markDon();renderSummary();saveDraft()}));
 $('rFirst').addEventListener('change',()=>{if(F.people.length===1&&!F.people[0].name){F.people[0].name=`${$('rFirst').value} ${$('rLast').value}`.trim();renderPeople()}});
 $('rLast').addEventListener('change',()=>{if(F.people.length===1&&(!F.people[0].name||F.people[0].name===$('rFirst').value.trim())){F.people[0].name=`${$('rFirst').value} ${$('rLast').value}`.trim();renderPeople()}});
 
@@ -792,7 +821,7 @@ $('regForm').addEventListener('submit',e=>{
   const n=D.regs.reduce((m,r)=>Math.max(m,parseInt(r.code.slice(4))||0),0)+1;
   const reg={code:'PSR-'+String(n).padStart(3,'0'),date:TODAY,first,last,email,phone:$('rPhone').value.trim(),city:$('rCity').value.trim(),state:$('rState').value,payer:$('rPayer').value.trim(),
     people:people.map(p=>({name:p.name.trim(),group:p.group})),shirts:{...F.shirts},addons:{...F.addons},donation:+$('rDonation').value||0};
-  D.regs.push(reg);
+  D.regs.push(reg);clearDraft();
   addFeed('ok',`New registration from ${first} ${last} (${reg.code}): ${reg.people.length} ${reg.people.length===1?'person':'people'}, ${money(regTotal(reg))}. Sent payment instructions to ${email}.`);
   save();showConfirm(reg);renderAll();
 });
@@ -814,6 +843,7 @@ function showConfirm(r){
       <a class="btn paypal block" id="cardBtn" href="${paypalLink(t)}" target="_blank" rel="noopener">Pay ${money(t)} by Card</a>
       <p class="muted small" style="text-align:center;margin-top:-2px">Debit or credit, through secure PayPal checkout. No PayPal account needed and no extra charge.</p>`:''}
     </div>
+    ${S_hotelBlock()}
     <p style="margin-top:18px">We've emailed your confirmation to <b>${esc(r.email)}</b>. You'll get a receipt once your payment arrives.</p>
     <div class="row" style="justify-content:center;margin-top:16px">
       <button class="btn" type="button" id="another">Register another household</button>
@@ -831,10 +861,18 @@ function showConfirm(r){
   const cb=$('cardBtn');if(cb)cb.addEventListener('click',e=>{if(/demo|example/i.test(D.S.paypal)){e.preventDefault();toast(`Demo only. In the real version this opens a secure card checkout for ${money(t)}.`)}});
   $('cashBtn').addEventListener('click',e=>{if(/demo|example/i.test(D.S.cashapp)){e.preventDefault();toast(`Demo only. In the real version this opens Cash App with ${money(t)} filled in.`)}});
   $('another').addEventListener('click',resetForm);
+  wireBook(c);
   $('done').addEventListener('click',()=>showThanks(r));
   $('seePay').addEventListener('click',()=>{resetForm();openTab('payments');window.scrollTo({top:0})});
   window.scrollTo({top:0});
 }
+function S_hotelBlock(){const S=D.S;if(!S.hotelName)return'';
+  const ok=/^https?:\/\//i.test(S.bookUrl||'');
+  return`<div class="bookbox"><div class="mini">Staying at the hotel?</div>
+    <p style="margin:4px 0 10px"><b>${esc(S.hotelName)}</b>${S.roomRate?` · ${esc(S.roomRate)}`:''}</p>
+    <a class="btn gold block" data-book href="${ok?esc(S.bookUrl):'#'}" target="_blank" rel="noopener">Book your room</a>
+    <p class="muted small" style="margin-top:8px">Opens in a new tab, so this page stays open. Rooms are paid to the hotel, not the reunion. Staying home each night? You can skip this.</p></div>`}
+function wireBook(c){c.querySelectorAll('[data-book]').forEach(a=>a.addEventListener('click',e=>{if(!/^https?:\/\//i.test(D.S.bookUrl||'')){e.preventDefault();toast('Booking link coming soon. Paste the hotel link in Setup once Brandi sends it.')}}))}
 function showThanks(r){const S=D.S,c=$('confirm');
   c.innerHTML=`<div class="panel confirm thanks">
     <div class="eyebrow" style="color:var(--green-2)">${esc(S.theme)}</div>
@@ -842,13 +880,15 @@ function showThanks(r){const S=D.S,c=$('confirm');
     <p style="margin-top:10px">We can't wait to see you at the reunion.</p>
     ${S.verse?`<p class="tverse">“${esc(S.verse)}”<span>${esc(S.verseRef||'')}</span></p>`:''}
     <p class="muted small" style="margin-top:14px">${esc(S.when)}${S.hotelName?' · '+esc(S.hotelName):''}</p>
+    ${S.hotelName?`<p style="margin-top:12px"><a href="${/^https?:\/\//i.test(S.bookUrl||'')?esc(S.bookUrl):'#'}" target="_blank" rel="noopener" data-book class="small" style="color:var(--green-2);font-weight:700">Still need a room? Book it here</a></p>`:''}
     <p class="muted small" style="margin-top:4px">You can close this page. Confirmation # <span class="mono">${esc(r.code)}</span></p>
     <button class="btn ghost sm demo-only" type="button" id="restart" style="margin-top:16px">Demo: start over</button></div>`;
-  $('restart').addEventListener('click',resetForm);window.scrollTo({top:0});
+  wireBook(c);$('restart').addEventListener('click',resetForm);window.scrollTo({top:0});
 }
 function resetForm(){F={people:[{name:'',group:'adult'}],shirts:sh({}),addons:{},donation:0};
-  ['rFirst','rLast','rEmail','rPhone','rCity','rState','rPayer'].forEach(i=>$(i).value='');$('rDonation').value=0;
-  $('confirm').hidden=true;$('regWrap').hidden=false;renderPeople();renderAddonFields();renderSummary();}
+  ['rFirst','rLast','rEmail','rPhone','rCity','rState','rPayer'].forEach(i=>$(i).value='');$('rDonation').value='';markDon();
+  $('confirm').hidden=true;$('regWrap').hidden=false;$('draftNote').hidden=true;renderPeople();renderAddonFields();renderSummary();}
+$('startOver').addEventListener('click',()=>{clearDraft();resetForm();toast('Cleared. You can start fresh.');window.scrollTo({top:0})});
 
 /* ---------- Overview ---------- */
 function bar(label,valTxt,pct,cls=''){return`<div class="barrow"><div class="top"><span>${label}</span><span class="num">${valTxt}</span></div><div class="track"><i class="${cls}" style="width:${Math.max(0,Math.min(100,pct))}%"></i></div></div>`}
@@ -1039,7 +1079,7 @@ function renderAll(settingsChanged){
   }
   renderHotel();renderCommit();renderSummary();renderOverview();renderPayments();renderExpenses();renderLedger();
 }
-renderSetup();renderPeople();renderAddonFields();renderAll();
+loadDraft();renderSetup();renderPeople();renderAddonFields();renderAll();
 openTab((location.hash||'').slice(1));
 })();
 </script>
