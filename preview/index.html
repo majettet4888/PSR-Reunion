@@ -173,7 +173,7 @@ details.demo-only summary{cursor:pointer;font-size:14px;font-weight:600;color:va
 .pinform{display:grid;gap:10px;width:100%;max-width:320px;text-align:left}
 .payamt{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:14px;background:var(--gold-soft)}
 .payamt b{font:600 28px var(--f-mono)}
-.zeffy{width:100%;min-height:980px;border:0;border-radius:14px;background:#fff}
+.zeffy{width:100%;height:680px;border:1px solid var(--line);border-radius:14px;background:#fff}
 .paysoon{padding:16px;border-radius:14px;border:1px dashed var(--green-2);background:var(--surface-2);text-align:left}
 .proof{font-size:12px;font-weight:700;color:var(--green-2)}
 .del{appearance:none;border:0;background:none;color:var(--muted);font:600 12px var(--f-body);cursor:pointer;padding:4px 6px;border-radius:6px;white-space:nowrap}
@@ -999,7 +999,7 @@ function payBlock(t){const u=D.S.zeffyUrl,ok=/^https:\/\/(www\.)?zeffy\.com\//i.
   if(!ok)return`<div class="paysoon"><b>Online payment opens soon.</b><p class="small" style="margin-top:4px">Your spot is saved. We'll email you as soon as you can pay online.</p></div>`;
   return`<ol class="paysteps">
       <li>Tap <b>Copy amount</b> above.</li>
-      <li>Paste it in the white amount box under <b>Choose an amount</b>. Tap <b>Continue</b>.</li>
+      <li>Paste it in the white amount box below. Tap <b>Continue</b>.</li>
       <li class="tipnote">Zeffy adds a tip. To remove it, click the box that says <b>15%</b> and choose <b>Other</b>.</li>
       <li>Check that the <b>Total</b> is <b class="num">${money(t)}</b>. Enter your card and tap <b>Donate</b>.</li>
     </ol>
@@ -1017,12 +1017,11 @@ function showConfirm(r,emailed){
       <div class="payamt"><span>Amount to pay</span><b>${money(t)}</b><button class="btn sm" type="button" data-copy="${t.toFixed(2)}">Copy amount</button></div>
       ${payBlock(t)}
     </div>
-    ${S_hotelBlock()}
     <p style="margin-top:18px">${isTest()?`<b>Test mode:</b> saved to the Test tabs only. `:''}${emailed===false?`We couldn't send the confirmation email right now. Your registration is saved.`:`We've emailed your confirmation to <b>${esc(r.email)}</b>.`} You'll get a receipt once your payment arrives.</p>
     <div class="row" style="justify-content:center;margin-top:16px">
-      <button class="btn" type="button" id="another">Register another household</button>
-      <button class="btn primary" type="button" id="done">Done</button>
+      <button class="btn primary" type="button" id="done">${/^https:\/\/(www\.)?zeffy\.com\//i.test(D.S.zeffyUrl||'')?'I’ve paid · Next':'Next'}</button>
     </div>
+    ${/^https:\/\/(www\.)?zeffy\.com\//i.test(D.S.zeffyUrl||'')?`<p style="margin-top:8px"><button class="linkbtn" type="button" id="payLater">I’ll pay later</button></p>`:''}
     ${isAdmin()?`<p style="margin-top:12px"><button class="linkbtn" type="button" id="recPay">Committee: record a payment for this household now</button></p>`:''}
     <p class="muted small" style="margin-top:16px">Confirmation # <span class="mono">${esc(r.code)}</span></p>
     ${LIVE?'':`<details class="demo-only"><summary>Demo only: preview the emails and the committee view</summary>
@@ -1034,8 +1033,7 @@ function showConfirm(r,emailed){
     </details>`}</div>`;
   c.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copy(b.dataset.copy,b)));
   const rp=$('recPay');if(rp)rp.addEventListener('click',()=>{const code=r.code;resetForm();openTab('payments');openManual(code);window.scrollTo({top:0})});
-  $('another').addEventListener('click',resetForm);
-  wireBook(c);
+  if($('payLater'))$('payLater').addEventListener('click',()=>showThanks(r,true));
   $('done').addEventListener('click',()=>showThanks(r));
   if($('seePay'))$('seePay').addEventListener('click',()=>{resetForm();openTab('payments');window.scrollTo({top:0})});
   window.scrollTo({top:0});
@@ -1047,16 +1045,20 @@ function S_hotelBlock(){const S=D.S;if(!S.hotelName)return'';
     <a class="btn gold block" data-book href="${ok?esc(S.bookUrl):'#'}" target="_blank" rel="noopener">Book your room</a>
     <p class="muted small" style="margin-top:8px">Opens in a new tab, so this page stays open. Rooms are paid to the hotel, not the reunion. Staying home each night? You can skip this.</p></div>`}
 function wireBook(c){c.querySelectorAll('[data-book]').forEach(a=>a.addEventListener('click',e=>{if(!/^https?:\/\//i.test(D.S.bookUrl||'')){e.preventDefault();toast('Booking link coming soon. Paste the hotel link in Setup once Brandi sends it.')}}))}
-function showThanks(r){const S=D.S,c=$('confirm');
+function showThanks(r,later){const S=D.S,c=$('confirm');
   c.innerHTML=`<div class="panel confirm thanks">
     <div class="eyebrow" style="color:var(--green-2)">${esc(S.theme)}</div>
     <h2 style="margin-top:8px;font-size:30px">You're all set, ${esc(r.first)}!</h2>
-    <p style="margin-top:10px">We can't wait to see you at the reunion.</p>
+    <p style="margin-top:10px">${later?`No problem. The payment link is in your confirmation email whenever you're ready.`:`We can't wait to see you at the reunion.`}</p>
     ${S.verse?`<p class="tverse">“${esc(S.verse)}”<span>${esc(S.verseRef||'')}</span></p>`:''}
     <p class="muted small" style="margin-top:14px">${esc(S.when)}${S.hotelName?' · '+esc(S.hotelName):''}</p>
-    ${S.hotelName?`<p style="margin-top:12px"><a href="${/^https?:\/\//i.test(S.bookUrl||'')?esc(S.bookUrl):'#'}" target="_blank" rel="noopener" data-book class="small" style="color:var(--green-2);font-weight:700">Still need a room? Book it here</a></p>`:''}
-    <p class="muted small" style="margin-top:4px">You can close this page. Confirmation # <span class="mono">${esc(r.code)}</span></p>
-    ${isAdmin()?`<button class="btn ghost sm" type="button" id="restart" style="margin-top:16px">${LIVE?'Register another household':'Demo: start over'}</button>`:''}</div>`;
+    <div style="text-align:left;margin-top:16px">${S_hotelBlock()}</div>
+    <div class="row" style="justify-content:center;margin-top:16px">
+      <button class="btn" type="button" id="restart">Register another household</button>
+      <button class="btn primary" type="button" id="allDone">Done</button>
+    </div>
+    <p class="muted small" style="margin-top:12px">Confirmation # <span class="mono">${esc(r.code)}</span></p></div>`;
+  $('allDone').addEventListener('click',()=>{c.innerHTML=`<div class="panel confirm thanks"><h2 style="font-size:28px">See you in Greensboro!</h2><p style="margin-top:10px">You can close this page now.</p><button class="btn ghost sm" type="button" id="restart2" style="margin-top:16px">Register another household</button></div>`;$('restart2').addEventListener('click',resetForm);window.scrollTo({top:0})});
   wireBook(c);if($('restart'))$('restart').addEventListener('click',resetForm);window.scrollTo({top:0});
 }
 function resetForm(){F={people:[{name:'',group:'adult'}],shirts:sh({}),addons:{},donation:0};
