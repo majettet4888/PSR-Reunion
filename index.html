@@ -105,6 +105,15 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--green-2)}
 .btn.ghost{background:transparent}
 .btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
 .btn.block{width:100%}
+.savebar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;margin:0 0 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.savebar.bottom{margin:16px 0 0}
+.savestate{font-size:14px;color:var(--muted)}.savestate.dirty{color:var(--warn)}.savestate.error{color:var(--bad)}.savestate.saved{color:var(--ok)}
+.teststrip{background:#fde8e8;color:#7a1414;border-bottom:1px solid #f3c2c2}.teststrip .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px;font-size:14px}
+.btn.testing{background:#a3252b;border-color:#a3252b;color:#fff}
+.tipnote{background:var(--gold-soft);border:2px solid var(--gold);border-radius:10px;padding:10px 12px;margin-left:-6px;color:var(--ink)}
+.tipnote b{font-weight:700}
+.paysteps{text-align:left;margin:0 0 14px;padding-left:22px;display:grid;gap:10px;font-size:15px;line-height:1.45}
+.paysteps .amt{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
 .err{color:var(--bad);font-size:13px;font-weight:600}
 
 /* Register */
@@ -322,9 +331,13 @@ ul.feed{margin:0;padding:0}
   <button class="btn sm ghost" id="resetDemo" type="button">Reset demo</button>
 </div></div>
 
+<div class="teststrip" id="testStrip" hidden><div class="wrap">
+  <span><b>Test mode is on.</b> Everything you do saves to the red Test tabs in the sheet, not the real ones. Emails still go out, marked [TEST].</span>
+  <span class="row" style="gap:8px"><button class="btn sm" id="testClear" type="button" hidden>Clear test data</button><button class="btn sm" id="testOff" type="button">Turn off test mode</button></span>
+</div></div>
 <div class="adminbar" id="adminBar" hidden><div class="wrap">
   <span><b>Committee view.</b> Family members only see the Register page.</span>
-  <span class="row" style="gap:8px"><button class="btn sm ghost" id="refreshBtn" type="button">Refresh</button><button class="btn sm ghost" id="signOut" type="button">Sign out</button></span>
+  <span class="row" style="gap:8px"><button class="btn sm ghost" id="testBtn" type="button">Test mode: Off</button><button class="btn sm ghost" id="refreshBtn" type="button">Refresh</button><button class="btn sm ghost" id="signOut" type="button">Sign out</button></span>
 </div></div>
 
 <nav class="tabs" id="tabsNav" aria-label="Sections"><div class="wrap" role="tablist">
@@ -528,7 +541,8 @@ ul.feed{margin:0;padding:0}
 
 <!-- SETUP -->
 <section role="tabpanel" id="tab-setup" hidden>
-  <p class="muted">Change anything here and the whole site updates right away: the registration page, totals, reports and all.</p>
+  <p class="muted">Change anything here, then click <b>Save changes</b>. The registration page, totals and reports update right away.</p>
+  <div class="savebar"><span class="savestate saved" data-savestate>All changes saved</span><button class="btn primary" type="button" data-savenow>Save changes</button></div>
   <div class="grid2">
     <div class="panel">
       <div class="panel-head"><h2>Reunion details</h2></div>
@@ -566,6 +580,8 @@ ul.feed{margin:0;padding:0}
         <p class="muted small" style="margin-top:-6px">While this is off, the family link shows "Registration opens soon." The committee can still register people.</p>
         <label class="f">Zeffy payment form link<input id="sZeffy" data-k="zeffyUrl" type="url" placeholder="Paste the Zeffy form link here"></label>
         <p class="muted small" style="margin-top:-6px">Until this is filled in, families see "Online payment opens soon" after they register.</p>
+        <label class="row small" style="gap:8px;font-weight:600"><input type="checkbox" id="sShowTest" data-k="showTest"> Show the Test mode button</label>
+        <p class="muted small" style="margin-top:-6px">Test mode lets the committee try registering without saving anything. Uncheck this when you're done testing to hide the button.</p>
       </div>
     </div>
   </div>
@@ -596,6 +612,7 @@ ul.feed{margin:0;padding:0}
     <div class="mini" style="margin-bottom:8px">Budget by category</div>
     <div class="fields" id="setBudgets"></div>
   </div>
+  <div class="savebar bottom"><span class="savestate saved" data-savestate>All changes saved</span><button class="btn primary" type="button" data-savenow>Save changes</button></div>
 </section>
 </main>
 <footer class="foot" id="foot" hidden><div class="wrap">
@@ -642,8 +659,8 @@ function defaults(){return{
     {id:'tshirt',label:'Reunion T-shirt',price:10,on:true,sized:true},
     {id:'lunch',label:'Saturday boxed lunch',price:36,on:true},
     {id:'outing',label:'Family outing pass',price:25,on:true}],
-  regOpen:false,zeffyUrl:'',zelle:'psrfamilyreunion@example.com',zelleName:'PSR Family Reunion',paypal:'PSRDemo',cardPct:3.49,cardFixed:0.49,cashapp:'$PSR-Demo',
-  begin:903.48,scholStart:4487.73,
+  regOpen:false,showTest:true,zeffyUrl:'',zelle:'',zelleName:'PSR Family Reunion',paypal:'',cardPct:3.49,cardFixed:0.49,cashapp:'',
+  begin:0,scholStart:0,
   budgets:{'Hotel catering & bar':6000,'Venue & deposits':1500,'Activities':800,'T-shirts & merchandise':600,'Printing & postage':350,'Food & hospitality':250,'Supplies & decor':200,'Card processing fees':200}
 }}
 function sh(o){const s={};SIZES.forEach(k=>s[k]=o[k]||0);return s}
@@ -693,10 +710,17 @@ const save=()=>{if(LIVE)return;try{localStorage.setItem(KEY,JSON.stringify(D))}c
 /* ---------- live data (Google Sheet) ---------- */
 let PIN='';try{PIN=sessionStorage.getItem('psr-pin')||''}catch(e){}
 const isAdmin=()=>!LIVE||!!PIN;
+let testOn=false;try{testOn=localStorage.getItem('psr-test-mode')==='1'}catch(e){}
+const isTest=()=>LIVE&&testOn&&D.S.showTest!==false;
+function setTest(on){testOn=!!on;try{on?localStorage.setItem('psr-test-mode','1'):localStorage.removeItem('psr-test-mode')}catch(e){}
+  if(!$('confirm').hidden){$('confirm').hidden=true;$('regWrap').hidden=false}
+  renderAll();
+  refreshLive().then(()=>{renderSetup();renderAll(true)}).catch(e=>toast(e.message));
+  toast(on?'Test mode on. Everything saves to the Test tabs.':'Test mode off. Back to the real records.')}
 const uid=()=>Date.now()+Math.floor(Math.random()*1000);
 async function api(action,data,log){
   let res;
-  try{res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,pin:PIN,data:data||{},log:log||null})})}
+  try{res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,pin:PIN,test:isTest(),data:data||{},log:log||null})})}
   catch(e){throw new Error('Could not reach the reunion system. Check your internet connection and try again.')}
   let j;try{j=await res.json()}catch(e){throw new Error('The reunion system sent back an unexpected answer. Try again in a minute.')}
   if(j.auth===false){signOut(true);throw new Error('Please sign in again.')}
@@ -718,7 +742,17 @@ async function refreshLive(){if(!LIVE)return;if(isAdmin())await loadAll();else a
 async function busy(btn,label,fn){const t=btn?btn.textContent:'';if(btn){btn.disabled=true;btn.textContent=label}
   try{return await fn()}catch(e){toast(e.message||'Something went wrong.');throw e}finally{if(btn){btn.disabled=false;btn.textContent=t}}}
 let setT;
-function persistSettings(){if(!LIVE){save();return}clearTimeout(setT);setT=setTimeout(()=>{api('saveSettings',D.S).then(()=>toast('Settings saved.')).catch(e=>toast(e.message))},700)}
+function setSaveState(st){const t=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  const msg={dirty:'Unsaved changes',saving:'Saving…',saved:'All changes saved · '+t,error:'Couldn’t save. Click Save changes to try again.'}[st];
+  document.querySelectorAll('[data-savestate]').forEach(e=>{e.textContent=msg;e.className='savestate '+st});
+  document.querySelectorAll('[data-savenow]').forEach(b=>{b.disabled=st==='saving';b.textContent=st==='saving'?'Saving…':'Save changes'})}
+function saveSettingsNow(manual){clearTimeout(setT);
+  if(!LIVE){save();setSaveState('saved');if(manual)toast('Settings saved.');return Promise.resolve()}
+  setSaveState('saving');
+  return api('saveSettings',D.S).then(()=>{setSaveState('saved');toast('Settings saved.')}).catch(e=>{setSaveState('error');toast(e.message)})}
+function persistSettings(){setSaveState('dirty');clearTimeout(setT);setT=setTimeout(()=>saveSettingsNow(false),LIVE?1500:400)}
+document.addEventListener('click',e=>{if(e.target.closest('[data-savenow]'))saveSettingsNow(true)});
+
 function readUpload(file,maxDim){return new Promise((ok,no)=>{
   if(!file)return ok(null);
   if(file.type==='application/pdf'){if(file.size>8e6)return no(new Error('That PDF is too big. Keep it under 8 MB.'));
@@ -963,7 +997,12 @@ $('regForm').addEventListener('submit',e=>{
 const zeffyEmbed=u=>String(u).replace(/zeffy\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?(?!embed\/)/,'zeffy.com/embed/');
 function payBlock(t){const u=D.S.zeffyUrl,ok=/^https:\/\/(www\.)?zeffy\.com\//i.test(u||'');
   if(!ok)return`<div class="paysoon"><b>Online payment opens soon.</b><p class="small" style="margin-top:4px">Your spot is saved. We'll email you as soon as you can pay online.</p></div>`;
-  return`<p class="small" style="text-align:left">Type <b>${money(t)}</b> in the <b>Other</b> amount box below, then finish checkout. Zeffy asks for an optional tip. You can change it to $0.</p>
+  return`<ol class="paysteps">
+      <li>Tap <b>Copy amount</b> above.</li>
+      <li>Paste it in the white amount box under <b>Choose an amount</b>. Tap <b>Continue</b>.</li>
+      <li class="tipnote">Zeffy adds a tip. To remove it, click the box that says <b>15%</b> and choose <b>Other</b>.</li>
+      <li>Check that the <b>Total</b> is <b class="num">${money(t)}</b>. Enter your card and tap <b>Donate</b>.</li>
+    </ol>
     <iframe class="zeffy" src="${esc(zeffyEmbed(u))}" title="Secure payment form" loading="lazy" allow="payment"></iframe>
     <p class="muted small">Form not showing? <a href="${esc(u)}" target="_blank" rel="noopener">Open the payment page</a></p>`}
 function showConfirm(r,emailed){
@@ -979,7 +1018,7 @@ function showConfirm(r,emailed){
       ${payBlock(t)}
     </div>
     ${S_hotelBlock()}
-    <p style="margin-top:18px">${emailed===false?`We couldn't send the confirmation email right now. Your registration is saved.`:`We've emailed your confirmation to <b>${esc(r.email)}</b>.`} You'll get a receipt once your payment arrives.</p>
+    <p style="margin-top:18px">${isTest()?`<b>Test mode:</b> saved to the Test tabs only. `:''}${emailed===false?`We couldn't send the confirmation email right now. Your registration is saved.`:`We've emailed your confirmation to <b>${esc(r.email)}</b>.`} You'll get a receipt once your payment arrives.</p>
     <div class="row" style="justify-content:center;margin-top:16px">
       <button class="btn" type="button" id="another">Register another household</button>
       <button class="btn primary" type="button" id="done">Done</button>
@@ -1023,7 +1062,7 @@ function showThanks(r){const S=D.S,c=$('confirm');
 function resetForm(){F={people:[{name:'',group:'adult'}],shirts:sh({}),addons:{},donation:0};
   ['rFirst','rLast','rEmail','rPhone','rCity','rState','rPayer'].forEach(i=>$(i).value='');$('rDonation').value='';markDon();
   $('confirm').hidden=true;$('regWrap').hidden=false;$('draftNote').hidden=true;renderPeople();renderAddonFields();renderSummary();gateReg();}
-function gateReg(){const closed=LIVE&&!isAdmin()&&(!D.loaded||!D.S.regOpen),box=$('regClosed');
+function gateReg(){const closed=LIVE&&!isAdmin()&&!isTest()&&(!D.loaded||!D.S.regOpen),box=$('regClosed');
   if(!$('confirm').hidden){box.hidden=true;return}
   box.hidden=!closed;$('regWrap').hidden=closed;
   if(closed)box.innerHTML=D.loadErr?`<h2>We can't reach the registration system</h2><p class="muted" style="margin-top:8px">Please refresh this page in a minute. If it keeps happening, reply to the email you got from the committee.</p>`
@@ -1310,7 +1349,14 @@ function renderAll(settingsChanged){
 function applyMode(){const adm=isAdmin();
   $('demoStrip').hidden=LIVE;$('demoPayPanel').hidden=LIVE;$('demoCardPanel').hidden=LIVE;
   $('tabsNav').hidden=LIVE&&!adm;$('adminBar').hidden=!(LIVE&&adm);$('foot').hidden=!LIVE||adm;
+  const t=isTest(),tb=$('testBtn');$('testStrip').hidden=!t;$('testClear').hidden=!(t&&adm);
+  tb.hidden=!LIVE||D.S.showTest===false;tb.textContent='Test mode: '+(t?'On':'Off');tb.classList.toggle('testing',t);
 }
+$('testBtn').addEventListener('click',()=>setTest(!isTest()));
+$('testOff').addEventListener('click',()=>setTest(false));
+let clearArm=0;$('testClear').addEventListener('click',e=>{const b=e.target;
+  if(Date.now()-clearArm>4000){clearArm=Date.now();b.textContent='Tap again to clear';setTimeout(()=>{if(b.textContent==='Tap again to clear')b.textContent='Clear test data'},4000);return}
+  clearArm=0;busy(b,'Clearing…',async()=>{await api('clearTest');await refreshLive();renderAll();toast('Test data cleared.')}).then(()=>b.textContent='Clear test data').catch(()=>{b.textContent='Clear test data'})});
 function signOut(silent){PIN='';try{sessionStorage.removeItem('psr-pin')}catch(e){}
   D.regs=[];D.pays=[];D.exps=[];D.contribs=[];D.feed=[];openTab('register');renderAll();if(!silent)toast('Signed out.')}
 $('signOut').addEventListener('click',()=>signOut());
