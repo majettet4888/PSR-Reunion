@@ -110,9 +110,15 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--green-2)}
 .savestate{font-size:14px;color:var(--muted)}.savestate.dirty{color:var(--warn)}.savestate.error{color:var(--bad)}.savestate.saved{color:var(--ok)}
 .teststrip{background:#fde8e8;color:#7a1414;border-bottom:1px solid #f3c2c2}.teststrip .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px;font-size:14px}
 .btn.testing{background:#a3252b;border-color:#a3252b;color:#fff}
-.tipnote{background:var(--gold-soft);border:2px solid var(--gold);border-radius:10px;padding:10px 12px;margin-left:-6px;color:var(--ink)}
+.paycard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-align:left}
+.paycard h3{margin:0 0 10px;font:700 15px var(--f-body);letter-spacing:.02em}
+.paycard .tipline{font-weight:700}
+.paycard .sub{margin:12px 0 0;color:var(--muted);font-size:14px}
+.formhelp{text-align:left;font-size:14px;color:var(--muted);margin:2px 0 6px}
+.ordercheck .rv{display:grid;gap:4px;text-align:left;margin-top:12px}
+.ordercheck .rv b{font-weight:700}
 .tipnote b{font-weight:700}
-.paysteps{text-align:left;margin:0 0 14px;padding-left:22px;display:grid;gap:10px;font-size:15px;line-height:1.45}
+.paysteps{text-align:left;margin:0;padding-left:22px;display:grid;gap:8px;font-size:15px;line-height:1.45}
 .paysteps .amt{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
 .err{color:var(--bad);font-size:13px;font-weight:600}
 
@@ -173,7 +179,7 @@ details.demo-only summary{cursor:pointer;font-size:14px;font-weight:600;color:va
 .pinform{display:grid;gap:10px;width:100%;max-width:320px;text-align:left}
 .payamt{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:14px;background:var(--gold-soft)}
 .payamt b{font:600 28px var(--f-mono)}
-.zeffy{width:100%;height:680px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.zeffy{width:100%;height:560px;border:1px solid var(--line);border-radius:14px;background:#fff}
 .paysoon{padding:16px;border-radius:14px;border:1px dashed var(--green-2);background:var(--surface-2);text-align:left}
 .proof{font-size:12px;font-weight:700;color:var(--green-2)}
 .del{appearance:none;border:0;background:none;color:var(--muted);font:600 12px var(--f-body);cursor:pointer;padding:4px 6px;border-radius:6px;white-space:nowrap}
@@ -337,7 +343,7 @@ ul.feed{margin:0;padding:0}
 </div></div>
 <div class="adminbar" id="adminBar" hidden><div class="wrap">
   <span><b>Committee view.</b> Family members only see the Register page.</span>
-  <span class="row" style="gap:8px"><button class="btn sm ghost" id="testBtn" type="button">Test mode: Off</button><button class="btn sm ghost" id="refreshBtn" type="button">Refresh</button><button class="btn sm ghost" id="signOut" type="button">Sign out</button></span>
+  <span class="row" style="gap:8px"><a class="btn sm ghost" id="sheetLink" href="#" target="_blank" rel="noopener" hidden>Open Sheet</a><button class="btn sm ghost" id="testBtn" type="button">Test mode: Off</button><button class="btn sm ghost" id="refreshBtn" type="button">Refresh</button><button class="btn sm ghost" id="signOut" type="button">Sign out</button></span>
 </div></div>
 
 <nav class="tabs" id="tabsNav" aria-label="Sections"><div class="wrap" role="tablist">
@@ -446,6 +452,7 @@ ul.feed{margin:0;padding:0}
     </div>
     <form id="ctForm" class="stack" style="gap:12px;margin-bottom:16px" hidden novalidate>
       <div class="fields">
+        <label class="f">Type<select id="ctType"><option>Committee contribution</option><option>Donation</option><option>Fundraiser</option><option>Other</option></select></label>
         <label class="f">Name<input id="ctName" autocomplete="off"></label>
         <label class="f">Amount ($)<input id="ctAmt" inputmode="decimal" autocomplete="off" value="120"></label>
         <label class="f">Paid by<select id="ctVia"><option>Zelle</option><option>Cash App</option><option>Cash</option><option>Check</option><option>Card (Zeffy)</option><option>Other</option></select></label>
@@ -476,7 +483,7 @@ ul.feed{margin:0;padding:0}
         <button class="filter" data-f="all" aria-pressed="true">All</button>
         <button class="filter" data-f="paid" aria-pressed="false">Paid</button>
         <button class="filter" data-f="partial" aria-pressed="false">Partly paid</button>
-        <button class="filter" data-f="waiting" aria-pressed="false">Waiting</button>
+        <button class="filter" data-f="waiting" aria-pressed="false">No payment</button>
       </div>
     </div>
     <label class="f" style="margin-bottom:12px">Look up a household<input id="regSearch" type="search" placeholder="Name, email or confirmation # (like PSR-009)" autocomplete="off"></label>
@@ -604,6 +611,7 @@ ul.feed{margin:0;padding:0}
     <div class="mini" style="margin-bottom:8px">Hotel commitment</div>
     <div class="fields" style="margin-bottom:12px">
       <label class="f">Catering minimum ($)<input id="sCater" data-k="caterMin" type="number" step="1"></label>
+      <label class="f">Food money per paying person ($)<input id="sFoodPer" data-k="foodPer" type="number" step="1"></label>
       <label class="f">Hotel deposit ($)<input id="sDep" data-k="deposit" type="number" step="1"></label>
       <label class="f">Service charge (%)<input id="sSvc" data-k="serviceCharge" type="number" step="0.01"></label>
       <label class="f">Sales tax (%)<input id="sTax" data-k="salesTax" type="number" step="0.01"></label>
@@ -648,7 +656,7 @@ function defaults(){return{
   edition:'101st',family:'Porter-Sanford-Reid Family Reunion',
   theme:'The Next Hundred Starts With Us',subtitle:'Three Families, One Tree, Growing Together',verse:'Tell ye your children of it, and let your children tell their children, and their children another generation.',verseRef:'Joel 1:3',
   when:'Summer 2027 · dates to be set',hotelName:'DoubleTree by Hilton Greensboro Airport',hotelStreet:'6426 Burnt Poplar Road',hotelCity:'Greensboro, NC 27409',hotelPhone:'',roomRate:'$129 per night (group rate)',hotelNote:'Breakfast included · Free airport shuttle and parking · Pet-free rooms · Reunion events are inside the hotel. Book at least 30 days before the reunion to get the group rate.',bookUrl:'',
-  caterMin:6000,deposit:1500,depositCounts:false,serviceCharge:23,salesTax:6.75,host:'Hosted by the Greensboro family',capacity:120,
+  caterMin:6000,foodPer:40,deposit:1500,depositCounts:false,serviceCharge:23,salesTax:6.75,host:'Hosted by the Greensboro family',capacity:120,
   earlyBird:'2027-06-30',
   groups:[
     {id:'adult',label:'Adult',ages:'13 & up',early:125,late:150},
@@ -712,6 +720,7 @@ let PIN='';try{PIN=sessionStorage.getItem('psr-pin')||''}catch(e){}
 const isAdmin=()=>!LIVE||!!PIN;
 let testOn=false;try{testOn=localStorage.getItem('psr-test-mode')==='1'}catch(e){}
 const isTest=()=>LIVE&&testOn&&D.S.showTest!==false;
+const startBal=()=>isTest()?0:(+D.S.begin||0),startSchol=()=>isTest()?0:(+D.S.scholStart||0);
 function setTest(on){testOn=!!on;try{on?localStorage.setItem('psr-test-mode','1'):localStorage.removeItem('psr-test-mode')}catch(e){}
   if(!$('confirm').hidden){$('confirm').hidden=true;$('regWrap').hidden=false}
   renderAll();
@@ -735,7 +744,7 @@ async function loadAll(){
   D.pays=(j.pays||[]).map(p=>({...p,id:+p.id,amount:+p.amount||0,fee:+p.fee||0,code:p.code||null}));
   D.exps=(j.exps||[]).map(e=>({...e,id:+e.id,amount:+e.amount||0}));
   D.contribs=(j.contribs||[]).map(c=>({...c,id:+c.id,amount:+c.amount||0}));
-  D.feed=(j.log||[]).map(l=>({d:l.date,t:l.time,k:l.kind,x:l.text}));
+  D.feed=(j.log||[]).map(l=>({d:l.date,t:l.time,k:l.kind,x:l.text}));D.sheetUrl=j.sheetUrl||'';
   D.pub={people:D.regs.reduce((s,r)=>s+r.people.length,0),households:D.regs.length};D.loaded=true;
 }
 async function refreshLive(){if(!LIVE)return;if(isAdmin())await loadAll();else await loadPublic()}
@@ -779,12 +788,12 @@ const regTotal=r=>regLines(r).reduce((s,l)=>s+l.a,0);
 const paidFor=code=>D.pays.filter(p=>p.code===code).reduce((s,p)=>s+(+p.amount),0);
 const balOf=r=>Math.max(0,regTotal(r)-paidFor(r.code));
 function statusOf(r){const t=regTotal(r),p=paidFor(r.code);if(p>=t-0.005)return'paid';if(p>0)return'partial';return'waiting'}
-const ST={paid:['ok','Paid in full'],partial:['warn','Partly paid'],waiting:['info','Waiting']};
+const ST={paid:['ok','Paid in full'],partial:['warn','Partly paid'],waiting:['info','No payment']};
 const regName=r=>`${r.first} ${r.last}`;
 const findReg=c=>D.regs.find(r=>r.code===c);
 
 function ledger(){
-  const opPaid={};let bal=+D.S.begin||0,op=0,schol=0,out=0;
+  const opPaid={};let bal=startBal(),op=0,schol=0,out=0;
   let contrib=0;
   const ev=D.pays.map(p=>({...p,t:'in'})).concat((D.contribs||[]).map(c=>({...c,t:'cin'}))).concat(D.exps.map(e=>({...e,t:'out'})))
     .sort((a,b)=>String(a.date).localeCompare(String(b.date))||(a.t===b.t?a.id-b.id:(a.t==='out'?1:b.t==='out'?-1:0)));
@@ -795,7 +804,7 @@ function ledger(){
       if(r){const need=regTotal(r)-(+r.donation||0),had=opPaid[e.code]||0;o=Math.min(+e.amount,Math.max(0,need-had));s=+e.amount-o;opPaid[e.code]=had+o}
       bal+=o;op+=o;schol+=s;
       rows.push({t:'in',date:e.date,desc:r?`${e.via} · ${regName(r)} (${r.code})`:`${e.via} · ${e.from}`,cat:r?'Registration & extras':'Unmatched payment',inA:o,bal,note:s>0?`${money(s)} went to the scholarship fund`:'' ,flag:!r});
-    }else if(e.t==='cin'){bal+=+e.amount;op+=+e.amount;contrib+=+e.amount;rows.push({t:'in',date:e.date,desc:`${e.via} · ${e.name}`,cat:'Committee contribution',inA:+e.amount,bal,note:e.receivedBy?`Received by ${e.receivedBy}`:''});
+    }else if(e.t==='cin'){bal+=+e.amount;op+=+e.amount;contrib+=+e.amount;rows.push({t:'in',date:e.date,desc:`${e.via} · ${e.name}`,cat:e.type||'Committee contribution',inA:+e.amount,bal,note:e.receivedBy?`Received by ${e.receivedBy}`:''});
     }else{bal-=+e.amount;out+=+e.amount;rows.push({t:'out',date:e.date,desc:e.vendor+(e.note?` · ${e.note}`:''),cat:e.category,outA:+e.amount,bal})}
   });
   const owed=D.regs.reduce((s,r)=>s+balOf(r),0);
@@ -882,11 +891,13 @@ function renderCommit(){const S=D.S,min=+S.caterMin||0,dep=+S.deposit||0;
   const heads=D.regs.reduce((s,r)=>s+r.people.length,0);
   const depPaid=D.exps.filter(e=>e.category==='Venue & deposits').reduce((s,e)=>s+(+e.amount),0);
   const steps=[75,100,125,150,200];
+  const foodPer=+S.foodPer||0,paying=D.regs.reduce((s,r)=>s+r.people.filter(p=>{const g=grp(p.group);return g&&((+g.early||0)>0||(+g.late||0)>0)}).length,0);
+  const need=min*f,foodIn=paying*foodPer,still=Math.max(0,need-foodIn),more=foodPer?Math.ceil(still/foodPer):0;
   $('commit').innerHTML=`<div class="panel-head"><div><h2>Hotel commitment</h2><p class="muted small">Order ${money0(min)} in hotel food and drinks and the event space is free. The hotel adds a ${+S.serviceCharge||0}% service charge and ${+S.salesTax||0}% tax on top, so the real bill for the minimum is about <b>${money0(min*f)}</b>.</p></div>
-    <span class="chip ${left<=0?'ok':'warn'}">${left<=0?'Minimum met':money0(left)+' to go'}</span></div>
+    <span class="chip ${still<=0?'ok':'warn'}">${still<=0?'Covered by registrations':money0(still)+' still needed'}</span></div>
   <div class="kpis" style="margin-bottom:16px">
-    <div class="kpi"><div class="l">Counted toward ${money0(min)}</div><div class="v">${money(counted)}</div><div class="h">Food and drinks before charges${S.depositCounts?', plus deposit':''}</div></div>
-    <div class="kpi"><div class="l">Left to reach it</div><div class="v">${money(left)}</div><div class="h">About ${money0(left*f)} with service charge and tax</div></div>
+    <div class="kpi"><div class="l">Counted toward ${money0(min)}</div><div class="v">${money(counted)}</div><div class="h">Hotel food and bar billed so far, before charges${S.depositCounts?', plus deposit':''}</div></div>
+    <div class="kpi"><div class="l">Still needed from registrations</div><div class="v">${money(still)}</div><div class="h">${paying} paying ${paying===1?'person':'people'} × ${money0(foodPer)} = ${money0(foodIn)} of about ${money0(need)} with charges.${still>0&&foodPer?` About ${more} more paying ${more===1?'person':'people'} needed.`:''}</div></div>
     <div class="kpi"><div class="l">Hotel bills paid</div><div class="v">${money(billed)}</div><div class="h">Catering and bar, charges included</div></div>
     <div class="kpi"><div class="l">Deposit</div><div class="v">${money(dep)}</div><div class="h">${depPaid>=dep&&dep?'Paid':'Not yet logged'} · ${S.depositCounts?'counts toward minimum':'separate from minimum'}</div></div>
   </div>
@@ -934,7 +945,7 @@ function renderSummary(){
     <div class="total"><span>Total</span><b>${money(t)}</b></div>
     <p class="pill-note" style="margin-bottom:14px">${early?`Early-bird prices through ${nice(D.S.earlyBird)}.`:'Regular prices apply.'} No processing fees.</p>
     <span class="err" id="regErr" hidden></span>
-    <button class="btn gold block" type="submit" form="regForm">Register and pay</button>
+    <button class="btn gold block" type="submit" form="regForm">Review my order</button>
     <p class="muted small" style="margin-top:10px;text-align:center">Next you'll see how to pay online.</p>`;
 }
 const titleCase=v=>v.replace(/(^|[\s\-'])([a-z])/g,(m,a,b)=>a+b.toUpperCase());
@@ -977,6 +988,8 @@ $('regForm').addEventListener('submit',e=>{
     return}
   const reg={date:TODAY,first,last,email,phone:$('rPhone').value.trim(),city:$('rCity').value.trim(),state:$('rState').value,payer:$('rPayer').value.trim(),
     people:people.map(p=>({name:p.name.trim(),group:p.group})),shirts:{...F.shirts},addons:{...F.addons},donation:+$('rDonation').value||0};
+  if(!reviewOK){showReview(reg);return}
+  reviewOK=false;
   if(LIVE){
     const btn=$('summary').querySelector('.btn.gold');
     busy(btn,'Registering…',async()=>{
@@ -985,7 +998,7 @@ $('regForm').addEventListener('submit',e=>{
       reg.code=j.code;clearDraft();
       try{await refreshLive()}catch(_){}
       showConfirm(reg,j.emailed!==false);renderAll();
-    }).catch(()=>{});
+    }).catch(()=>{showReview(reg)});
     return;
   }
   const n=D.regs.reduce((m,r)=>Math.max(m,parseInt(r.code.slice(4))||0),0)+1;
@@ -994,17 +1007,43 @@ $('regForm').addEventListener('submit',e=>{
   addFeed('ok',`New registration from ${first} ${last} (${reg.code}): ${reg.people.length} ${reg.people.length===1?'person':'people'}, ${money(regTotal(reg))}. Sent payment instructions to ${email}.`);
   save();showConfirm(reg,true);renderAll();
 });
+let reviewOK=false;
+function showReview(r){const L=regLines(r),t=regTotal(r);
+  $('regWrap').hidden=true;const c=$('confirm');c.hidden=false;
+  c.innerHTML=`<div class="panel confirm ordercheck">
+    <div class="eyebrow" style="color:var(--green-2)">Almost done</div>
+    <h2 style="margin-top:6px">Check your order</h2>
+    <p class="muted small" style="margin-top:6px">Nothing is saved yet. Make sure everything is right.</p>
+    <div class="rv"><div><b>${esc(r.first)} ${esc(r.last)}</b> · ${esc(r.email)}${r.phone?` · ${esc(r.phone)}`:''}</div>
+      ${r.payer?`<div class="muted small">Paid by: ${esc(r.payer)}</div>`:''}</div>
+    <div class="mini" style="margin-top:14px;text-align:left">Who’s coming</div>
+    <div class="lines" style="text-align:left">${r.people.map(p=>`<div class="line"><span>${esc(p.name)}</span><span class="muted small">${esc((grp(p.group)||{}).label||'')}</span></div>`).join('')}</div>
+    <div class="mini" style="margin-top:14px;text-align:left">Your order</div>
+    <div class="lines" style="text-align:left">${L.map(l=>`<div class="line"><span>${esc(l.label)} ${l.don?'':`<span class="q">× ${l.q}</span>`}</span><span class="num">${l.a?money(l.a):'Free'}</span></div>`).join('')}</div>
+    <div class="total" style="text-align:left"><span>Total</span><b>${money(t)}</b></div>
+    <div class="row" style="justify-content:center;margin-top:18px">
+      <button class="btn" type="button" id="rvBack">← Go back and fix</button>
+      <button class="btn gold" type="button" id="rvOk">Looks right, register</button>
+    </div></div>`;
+  $('rvBack').addEventListener('click',()=>{c.hidden=true;$('regWrap').hidden=false;window.scrollTo({top:$('regWrap').offsetTop-80})});
+  $('rvOk').addEventListener('click',e=>{reviewOK=true;e.target.disabled=true;e.target.textContent='Registering…';$('regForm').dispatchEvent(new Event('submit',{cancelable:true}))});
+  window.scrollTo({top:0});
+}
 const zeffyEmbed=u=>String(u).replace(/zeffy\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?(?!embed\/)/,'zeffy.com/embed/');
 function payBlock(t){const u=D.S.zeffyUrl,ok=/^https:\/\/(www\.)?zeffy\.com\//i.test(u||'');
   if(!ok)return`<div class="paysoon"><b>Online payment opens soon.</b><p class="small" style="margin-top:4px">Your spot is saved. We'll email you as soon as you can pay online.</p></div>`;
-  return`<ol class="paysteps">
-      <li>Tap <b>Copy amount</b> above.</li>
-      <li>Paste it in the white amount box below. Tap <b>Continue</b>.</li>
-      <li class="tipnote">Zeffy adds a tip. To remove it, click the box that says <b>15%</b> and choose <b>Other</b>.</li>
-      <li>Check that the <b>Total</b> is <b class="num">${money(t)}</b>. Enter your card and tap <b>Donate</b>.</li>
-    </ol>
-    <iframe class="zeffy" src="${esc(zeffyEmbed(u))}" title="Secure payment form" loading="lazy" allow="payment"></iframe>
-    <p class="muted small">Form not showing? <a href="${esc(u)}" target="_blank" rel="noopener">Open the payment page</a></p>`}
+  return`<div class="paycard">
+      <h3>How to pay</h3>
+      <ol class="paysteps">
+        <li>Tap <b>Copy amount</b> above.</li>
+        <li>Paste it in the white amount box below. Tap <b>Continue</b>.</li>
+        <li class="tipline">Zeffy adds a tip. To remove it, click the box that says 15% and choose “Other.”</li>
+        <li>Check that the <b>Total</b> is <b class="num">${money(t)}</b>. Enter your card and tap <b>Donate</b>.</li>
+      </ol>
+      <p class="sub">Can’t pay it all today? Type a smaller amount. You can pay the rest later.</p>
+    </div>
+    <p class="formhelp">Don’t see the payment form below? <a href="${esc(u)}" target="_blank" rel="noopener">Open it here</a></p>
+    <iframe class="zeffy" src="${esc(zeffyEmbed(u))}" title="Secure payment form" loading="lazy" allow="payment"></iframe>`}
 function showConfirm(r,emailed){
   const L=regLines(r),t=regTotal(r);
   $('regWrap').hidden=true;const c=$('confirm');c.hidden=false;
@@ -1033,8 +1072,8 @@ function showConfirm(r,emailed){
     </details>`}</div>`;
   c.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copy(b.dataset.copy,b)));
   const rp=$('recPay');if(rp)rp.addEventListener('click',()=>{const code=r.code;resetForm();openTab('payments');openManual(code);window.scrollTo({top:0})});
-  if($('payLater'))$('payLater').addEventListener('click',()=>showThanks(r,true));
-  $('done').addEventListener('click',()=>showThanks(r));
+  if($('payLater'))$('payLater').addEventListener('click',()=>showThanks(r,true,emailed));
+  $('done').addEventListener('click',()=>showThanks(r,false,emailed));
   if($('seePay'))$('seePay').addEventListener('click',()=>{resetForm();openTab('payments');window.scrollTo({top:0})});
   window.scrollTo({top:0});
 }
@@ -1045,7 +1084,7 @@ function S_hotelBlock(){const S=D.S;if(!S.hotelName)return'';
     <a class="btn gold block" data-book href="${ok?esc(S.bookUrl):'#'}" target="_blank" rel="noopener">Book your room</a>
     <p class="muted small" style="margin-top:8px">Opens in a new tab, so this page stays open. Rooms are paid to the hotel, not the reunion. Staying home each night? You can skip this.</p></div>`}
 function wireBook(c){c.querySelectorAll('[data-book]').forEach(a=>a.addEventListener('click',e=>{if(!/^https?:\/\//i.test(D.S.bookUrl||'')){e.preventDefault();toast('Booking link coming soon. Paste the hotel link in Setup once Brandi sends it.')}}))}
-function showThanks(r,later){const S=D.S,c=$('confirm');
+function showThanks(r,later,emailed){const S=D.S,c=$('confirm');
   c.innerHTML=`<div class="panel confirm thanks">
     <div class="eyebrow" style="color:var(--green-2)">${esc(S.theme)}</div>
     <h2 style="margin-top:8px;font-size:30px">You're all set, ${esc(r.first)}!</h2>
@@ -1054,10 +1093,12 @@ function showThanks(r,later){const S=D.S,c=$('confirm');
     <p class="muted small" style="margin-top:14px">${esc(S.when)}${S.hotelName?' · '+esc(S.hotelName):''}</p>
     <div style="text-align:left;margin-top:16px">${S_hotelBlock()}</div>
     <div class="row" style="justify-content:center;margin-top:16px">
+      <button class="btn ghost" type="button" id="backPay">← Back</button>
       <button class="btn" type="button" id="restart">Register another household</button>
       <button class="btn primary" type="button" id="allDone">Done</button>
     </div>
     <p class="muted small" style="margin-top:12px">Confirmation # <span class="mono">${esc(r.code)}</span></p></div>`;
+  $('backPay').addEventListener('click',()=>showConfirm(r,emailed));
   $('allDone').addEventListener('click',()=>{c.innerHTML=`<div class="panel confirm thanks"><h2 style="font-size:28px">See you in Greensboro!</h2><p style="margin-top:10px">You can close this page now.</p><button class="btn ghost sm" type="button" id="restart2" style="margin-top:16px">Register another household</button></div>`;$('restart2').addEventListener('click',resetForm);window.scrollTo({top:0})});
   wireBook(c);if($('restart'))$('restart').addEventListener('click',resetForm);window.scrollTo({top:0});
 }
@@ -1077,7 +1118,7 @@ $('startOver').addEventListener('click',()=>{clearDraft();resetForm();toast('Cle
 function bar(label,valTxt,pct,cls=''){return`<div class="barrow"><div class="top"><span>${label}</span><span class="num">${valTxt}</span></div><div class="track"><i class="${cls}" style="width:${Math.max(0,Math.min(100,pct))}%"></i></div></div>`}
 function renderOverview(){
   const Lg=ledger(),S=D.S;
-  const schFund=(+S.scholStart||0)+Lg.schol;
+  const schFund=startSchol()+Lg.schol;
   $('kpis').innerHTML=[
     ['hl','Reunion balance',money(Lg.end),'Money on hand right now'],
     ['','Collected',money(Lg.gross),`${D.pays.length} payments · ${money(Lg.contrib)} from the committee`],
@@ -1132,8 +1173,9 @@ function receiptBody(r){const t=regTotal(r),p=paidFor(r.code),s=statusOf(r),bal=
     :s==='partial'?`We've received ${money(p)} of ${money(t)}. Remaining balance: ${money(bal)}.${u?` You can pay the rest online: ${u}`:''}`
     :`Your total is ${money(t)}.${u?` Pay online: ${u}`:` Online payment opens soon. We'll email you when it's ready.`}`}
 async function sendReceipt(r,to){
-  const body=`Hi ${r.first},\n\n${receiptBody(r)}\n\nRegistered: ${r.people.map(x=>x.name).join(', ')}\nConfirmation # ${r.code}\n\nQuestions? Reply to this email.\n\nPSR Family Reunion Committee`;
-  await api('sendEmail',{to:to||r.email,subject:receiptSubject(r),body},{k:'ok',x:`Sent a receipt to ${regName(r)} (${r.code}) at ${to||r.email}.`});
+  const lines=regLines(r).map(l=>({label:l.label,q:l.q,a:l.a,don:!!l.don}));
+  await api('sendReceipt',{to:to||r.email,code:r.code,reg:{first:r.first,last:r.last,email:r.email,people:r.people},lines,total:regTotal(r),paid:paidFor(r.code)},
+    {k:'ok',x:`Sent a receipt to ${regName(r)} (${r.code}) at ${to||r.email}.`});
 }
 function renderResend(){const box=$('resendBox'),r=resendCode&&findReg(resendCode);
   if(!r){box.innerHTML='';return}
@@ -1233,7 +1275,7 @@ $('ctForm').addEventListener('submit',e=>{e.preventDefault();
   if(!name){er.textContent='Enter who the contribution is from.';er.hidden=false;return}
   if(!(a>0)){er.textContent='Enter the amount.';er.hidden=false;return}
   er.hidden=true;
-  const c={id:uid(),date:$('ctDate').value||TODAY,name,amount:a,via:$('ctVia').value,receivedBy:$('ctTo').value.trim(),note:$('ctNote').value.trim()};
+  const c={id:uid(),date:$('ctDate').value||TODAY,type:$('ctType').value,name,amount:a,via:$('ctVia').value,receivedBy:$('ctTo').value.trim(),note:$('ctNote').value.trim()};
   const logx={k:'ok',x:`Recorded a ${money(a)} committee contribution from ${name} (${c.via}).`};
   if(LIVE){busy($('ctSave'),'Saving…',async()=>{await api('addContribution',{...c,proof:ctUp?ctUp.dataUrl:'',proofName:ctUp?ctUp.name:''},logx);await refreshLive();closeCt();renderAll();toast('Contribution saved.')}).catch(()=>{});return}
   if(ctUp){if(ctUp.kind==='image')c.proof=ctUp.dataUrl;else c.proofName=ctUp.name}
@@ -1298,17 +1340,17 @@ function renderLedger(){
     ['sub','Includes committee contributions',L.contrib],
     ['sub','Less: scholarship donations (kept in their own fund)',-L.schol],
     ['','Reunion money collected',L.op],
-    ['','Starting balance carried over',+S.begin||0],
+    ['','Starting balance carried over',startBal()],
     ['','Expenses paid',-L.out],
     ['sum','Reunion balance now',L.end],
     ['sub','Still owed by registered households',L.owed],
     ['sum','Projected balance once everyone pays',L.end+L.owed],
-    ['sub','Scholarship fund balance',(+S.scholStart||0)+L.schol]
+    ['sub','Scholarship fund balance',startSchol()+L.schol]
   ].map(([c,l,v])=>`<tr class="${c}"><td>${l}</td><td class="num">${money(v)}</td></tr>`).join('');
   const rows=L.rows.filter(r=>ledFilter==='all'||r.t===ledFilter).slice().reverse();
   $('ledRows').innerHTML=rows.map(r=>`<tr><td>${nice(r.date)}</td><td>${esc(r.desc)}${r.note?`<span class="sub">${esc(r.note)}</span>`:''}</td>
     <td>${r.flag?'<span class="chip warn">Unmatched</span>':esc(r.cat)}</td><td class="num in">${r.inA!=null?money(r.inA):''}</td><td class="num out">${r.outA!=null?money(r.outA):''}</td><td class="num">${money(r.bal)}</td></tr>`).join('')
-    +(ledFilter==='all'?`<tr class="start"><td></td><td>Starting balance</td><td>Carried over from 2026</td><td></td><td></td><td class="num">${money(+S.begin||0)}</td></tr>`:'');
+    +(ledFilter==='all'?`<tr class="start"><td></td><td>Starting balance</td><td>Carried over from 2026</td><td></td><td></td><td class="num">${money(startBal())}</td></tr>`:'');
 }
 $('ledFilters').addEventListener('click',e=>{const b=e.target.closest('.filter');if(!b)return;ledFilter=b.dataset.f;$('ledFilters').querySelectorAll('.filter').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderLedger()});
 
@@ -1351,6 +1393,7 @@ function renderAll(settingsChanged){
 function applyMode(){const adm=isAdmin();
   $('demoStrip').hidden=LIVE;$('demoPayPanel').hidden=LIVE;$('demoCardPanel').hidden=LIVE;
   $('tabsNav').hidden=LIVE&&!adm;$('adminBar').hidden=!(LIVE&&adm);$('foot').hidden=!LIVE||adm;
+  const sl=$('sheetLink');sl.hidden=!(LIVE&&adm&&D.sheetUrl);if(D.sheetUrl)sl.href=D.sheetUrl;
   const t=isTest(),tb=$('testBtn');$('testStrip').hidden=!t;$('testClear').hidden=!(t&&adm);
   tb.hidden=!LIVE||D.S.showTest===false;tb.textContent='Test mode: '+(t?'On':'Off');tb.classList.toggle('testing',t);
 }
